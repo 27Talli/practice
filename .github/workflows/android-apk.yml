@@ -10,6 +10,7 @@ on:
       - 'gradle.properties'
       - 'gradlew*'
       - 'scripts/bootstrap-gradle.*'
+      - 'scripts/install-android-sdk.py'
       - '.github/workflows/android-apk.yml'
   workflow_dispatch:
 
@@ -33,7 +34,7 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+        run: python3 scripts/install-android-sdk.py
       - name: Build APKs, run unit tests, and lint
         run: |
           chmod +x gradlew
@@ -54,9 +55,9 @@ jobs:
             echo 'Room instrumentation APK compiles; device tests are not run by this workflow.'
             echo
             echo '### SHA-256 checksums'
-            echo '\`\`\`'
+            echo '```'
             cat apk-checksums.txt
-            echo '\`\`\`'
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload live APK
         uses: actions/upload-artifact@v4
