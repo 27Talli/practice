@@ -12,7 +12,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -21,6 +24,7 @@ import androidx.navigation.navArgument
 import com.offerpoint.pos.domain.repository.InventoryRepository
 import com.offerpoint.pos.domain.repository.ProductRepository
 import com.offerpoint.pos.domain.repository.ShopRepository
+import com.offerpoint.pos.domain.repository.SalesRepository
 import com.offerpoint.pos.ui.components.ErrorNotice
 import com.offerpoint.pos.ui.screens.AppViewModel
 import com.offerpoint.pos.ui.screens.ComingSoonScreen
@@ -35,12 +39,19 @@ import com.offerpoint.pos.ui.screens.ProductsViewModel
 import com.offerpoint.pos.ui.screens.SettingsScreen
 import com.offerpoint.pos.ui.screens.ShopSelectionScreen
 import com.offerpoint.pos.ui.screens.StockAdjustmentViewModel
+import com.offerpoint.pos.ui.screens.CheckoutScreen
+import com.offerpoint.pos.ui.screens.CheckoutViewModel
+import com.offerpoint.pos.ui.screens.SalesHistoryScreen
+import com.offerpoint.pos.ui.screens.SalesHistoryViewModel
+import com.offerpoint.pos.ui.screens.SaleDetailsScreen
+import com.offerpoint.pos.ui.screens.SaleDetailsViewModel
+import com.offerpoint.pos.ui.screens.TodaySalesViewModel
 import com.offerpoint.pos.ui.theme.OfferPointTheme
 import kotlinx.coroutines.flow.collect
 
 /** Root UI entry point; startup/seeding is performed once by its retained ViewModel. */
 @Composable
-fun OfferPointApp(shopRepository: ShopRepository, productRepository: ProductRepository, inventoryRepository: InventoryRepository) {
+fun OfferPointApp(shopRepository: ShopRepository, productRepository: ProductRepository, inventoryRepository: InventoryRepository, salesRepository: SalesRepository) {
     OfferPointTheme {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             val appViewModel: AppViewModel = viewModel(factory = PosViewModelFactory { AppViewModel(shopRepository) })
@@ -64,21 +75,65 @@ fun OfferPointApp(shopRepository: ShopRepository, productRepository: ProductRepo
                         composable("shops") {
                             ShopSelectionScreen(appState, appViewModel::selectShop, if (appState.selectedShop == null) null else ({ nav.navigate("dashboard") { popUpTo(nav.graph.id) { inclusive = true }; launchSingleTop = true } }))
                         }
-                        composable("dashboard") {
+                        composable("dashboard") { entry ->
                             val shop = appState.selectedShop
                             if (shop == null) {
                                 LaunchedEffect(Unit) { nav.navigate("shops") { popUpTo(nav.graph.id) { inclusive = true } } }
                             } else {
+                                val todayVm: TodaySalesViewModel = viewModel(entry, key = "today-${shop.id}", factory = PosViewModelFactory { TodaySalesViewModel(salesRepository, shop.id) })
+                                val today by todayVm.state.collectAsStateWithLifecycle()
                                 DashboardScreen(
                                     shop,
+                                    today,
+                                    onRetryToday = todayVm::retry,
                                     onProducts = { nav.navigate("products/${shop.id}") },
                                     onInventory = { nav.navigate("inventory/${shop.id}") },
-                                    onCheckout = { nav.navigate("coming/${shop.id}/Checkout") },
+                                    onCheckout = { nav.navigate("checkout/${shop.id}") },
+                                    onSales = { nav.navigate("sales/${shop.id}") },
                                     onReports = { nav.navigate("coming/${shop.id}/Reports") },
                                     onSettings = { nav.navigate("settings/${shop.id}") },
                                     onSwitch = { nav.navigate("shops") },
                                 )
                             }
+                        }
+                        composable("checkout/{shopId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType })) { entry ->
+                            val id = entry.arguments?.getLong("shopId") ?: return@composable
+                            val shop = appState.shops.firstOrNull { it.id == id } ?: return@composable
+                            val vm: CheckoutViewModel = viewModel(entry, factory = viewModelFactory {
+                                initializer { CheckoutViewModel(productRepository, salesRepository, id, createSavedStateHandle()) }
+                            })
+                            val state by vm.state.collectAsStateWithLifecycle()
+                            CheckoutScreen(shop, state, vm::search, vm::retryProducts, vm::add, vm::editLine,
+                                vm::remove, vm::setOrderDiscount, vm::setCashReceived, vm::exactCash, vm::refreshCart,
+                                vm::pay, vm::recoverPending,
+                                onSaved = { saleId ->
+                                    nav.navigate("sale/$id/$saleId?completed=true") {
+                                        popUpTo(entry.destination.id) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                }, onBack = { if (vm.canLeaveCheckout()) nav.popBackStack() })
+                        }
+                        composable("sales/{shopId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType })) { entry ->
+                            val id = entry.arguments?.getLong("shopId") ?: return@composable
+                            val shop = appState.shops.firstOrNull { it.id == id } ?: return@composable
+                            val vm: SalesHistoryViewModel = viewModel(entry, factory = PosViewModelFactory { SalesHistoryViewModel(salesRepository, id) })
+                            val state by vm.state.collectAsStateWithLifecycle()
+                            SalesHistoryScreen(shop, state, vm::retry, { saleId -> nav.navigate("sale/$id/$saleId?completed=false") }, { nav.popBackStack() })
+                        }
+                        composable("sale/{shopId}/{saleId}?completed={completed}", arguments = listOf(
+                            navArgument("shopId") { type = NavType.LongType },
+                            navArgument("saleId") { type = NavType.LongType },
+                            navArgument("completed") { type = NavType.BoolType; defaultValue = false },
+                        )) { entry ->
+                            val id = entry.arguments?.getLong("shopId") ?: return@composable
+                            val saleId = entry.arguments?.getLong("saleId") ?: return@composable
+                            val shop = appState.shops.firstOrNull { it.id == id } ?: return@composable
+                            val vm: SaleDetailsViewModel = viewModel(entry, factory = PosViewModelFactory { SaleDetailsViewModel(salesRepository, id, saleId) })
+                            val state by vm.state.collectAsStateWithLifecycle()
+                            SaleDetailsScreen(shop, state, entry.arguments?.getBoolean("completed") == true, vm::load,
+                                onNewSale = {
+                                    nav.navigate("checkout/$id") { popUpTo(entry.destination.id) { inclusive = true } }
+                                }, onBack = { nav.popBackStack() })
                         }
                         composable("products/{shopId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType })) { entry ->
                             val id = entry.arguments?.getLong("shopId") ?: return@composable

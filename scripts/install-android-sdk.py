@@ -35,6 +35,7 @@ with urllib.request.urlopen(url, timeout=90) as response, archive_path.open("wb"
 digest = hashlib.new(checksum.get("type", "sha1"), archive_path.read_bytes()).hexdigest()
 if digest.lower() != checksum.text.strip().lower():
     raise RuntimeError("Android command-line tools checksum mismatch")
+print("Verified Google's command-line tools 16.0 archive checksum.", flush=True)
 extract = sdk / "unpack"
 with zipfile.ZipFile(archive_path) as source:
     source.extractall(extract)

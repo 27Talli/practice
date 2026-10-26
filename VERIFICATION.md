@@ -1,41 +1,15 @@
 # Delivery verification
 
-This file records checks actually executed in the development workspace on 26 October 2026.
+## Milestone 1 baseline
 
-- Workspace began without Android SDK, Gradle, a Java compiler, or an emulator.
-- OpenJDK 21 runtime was present; a build JDK/SDK must be provisioned.
-- No Android device or `/dev/kvm` was available at initial inspection.
-- Network approval for toolchain/dependency downloads was canceled. The Android SDK, JDK compiler, and Gradle distribution therefore remain unavailable.
+The original Android build succeeded on GitHub Actions run [40327606654](https://github.com/27Talli/practice/actions/runs/40327606654), source commit `f30ef86ccab5e1ff273d8e4e663e2712db31ccd8`. Both debug APKs, both JVM suites, live lint, instrumentation APK compilation, and v2 APK signature verification passed. The original 19 Room device tests were not run in that baseline workflow.
 
-Passed locally:
+## Milestone 2 verification
 
-- `sh -n gradlew scripts/bootstrap-gradle.sh` — shell launchers parse.
-- All five Android XML manifests/resources parse using Python's XML parser.
-- The Gradle version catalog parses and all library/plugin version references resolve within that catalog. This does not establish remote artifact availability.
-- `python3 scripts/check_schema.py` — all 14 entities reflected from Kotlin annotations, exact foreign-key parent uniqueness, covering child indices, compilation of 20 actual DAO SQL queries using SQLite 3.53.1, cross-shop/cross-sale/wrong-product rejection, global barcode uniqueness, nonnegative stock update behavior, shop stock isolation, literal search, leading-zero barcode, and clean foreign-key check.
+Milestone 2 implementation is written; the new build and emulator run are pending. Do not treat source presence as successful compilation or passing tests.
 
-Attempted:
+Local supplemental checks pass for the 15 entity definitions and current DAO SQL, foreign keys, barcode uniqueness, and stock isolation. These checks use Python’s SQLite and do not replace Room or Android testing.
 
-```sh
-./gradlew :app:assembleLiveDebug :app:assembleDemoDebug \
-  :app:testLiveDebugUnitTest :app:testDemoDebugUnitTest \
-  :app:lintLiveDebug :app:assembleLiveDebugAndroidTest
-```
+The updated workflow will build Live and Demo, run JVM tests for each, run live lint, validate APK signatures, and execute all 40 Room/migration tests on an Android emulator. Actual run results, APK checksums, and any remaining limits will be recorded here after execution.
 
-Result: **exit 7 during the wrapper download**, before Gradle or Kotlin compilation started:
-
-```text
-Downloading the official Gradle 8.9 wrapper (first run only)…
-curl: (7) Failed to connect to proxy port 8080 after 0 ms: Could not connect to server
-```
-
-Consequently:
-
-- **No successful APK build. No APK is included.**
-- **No JVM test or Android lint result.** The 12 JVM tests were written but not executed.
-- **No Room annotation-processing or instrumentation result.** The 19 instrumented tests were written but not executed. No device/emulator was present.
-- The full pinned dependency set could not be fetched/verified. No claims are made about a successful Gradle sync.
-- The official wrapper JAR and generated Room schema JSON could not be downloaded/generated. The included source bootstrap launchers obtain and checksum-verify the official wrapper on a developer's first build; KSP generates the schema during a successful build.
-- Supplemental SQLite checks verify schema/query design; they are **not** a substitute for Room, Android, or Kotlin tests.
-
-Exact reproduction commands are in README.md.
+The local cloud workspace still lacks Android SDK/Gradle/JDK compiler; GitHub Actions supplies the build environment. No local dependency-download approval is required for that route.

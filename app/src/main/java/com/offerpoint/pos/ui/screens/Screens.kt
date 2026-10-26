@@ -149,9 +149,12 @@ internal fun ShopSelectionScreen(state: AppState, onSelect: (Long) -> Unit, onBa
 @Composable
 internal fun DashboardScreen(
     shop: Shop,
+    today: TodaySalesState,
+    onRetryToday: () -> Unit,
     onProducts: () -> Unit,
     onInventory: () -> Unit,
     onCheckout: () -> Unit,
+    onSales: () -> Unit,
     onReports: () -> Unit,
     onSettings: () -> Unit,
     onSwitch: () -> Unit,
@@ -174,12 +177,19 @@ internal fun DashboardScreen(
                 }
             }
             item {
-                StatusCard("Today’s sales", "Coming soon. Sales recording and daily totals will be added with checkout.")
+                when {
+                    today.loading -> StatusCard("Today’s sales", "Loading saved sales…")
+                    today.error != null -> ErrorNotice(today.error, onRetryToday)
+                    else -> today.sales?.let { sales ->
+                        StatusCard("Today’s sales · Pakistan time", "${Money.format(sales.totalPaise)}\n${sales.transactionCount} completed ${if (sales.transactionCount == 1) "sale" else "sales"}")
+                    }
+                }
             }
             item { Text("At your counter", Modifier.padding(top = 12.dp, bottom = 2.dp), style = MaterialTheme.typography.titleLarge) }
             item { ShortcutCard("Products", "Add, edit, and find products", "MANAGE", onProducts) }
             item { ShortcutCard("Inventory", "View quantities and adjust stock", "MANAGE", onInventory) }
-            item { ShortcutCard("Checkout", "Sales and payments", "COMING SOON", onCheckout) }
+            item { ShortcutCard("Checkout", "Record a cash sale and deduct stock", "CASH SALE", onCheckout) }
+            item { ShortcutCard("Sales history", "Open completed transactions", "VIEW", onSales) }
             item { ShortcutCard("Reports", "Shop performance and financial reports", "COMING SOON", onReports) }
             item { Text("Saved locally on this device · No account required", Modifier.padding(vertical = 12.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
@@ -395,7 +405,7 @@ internal fun ComingSoonScreen(title: String, shop: Shop, onBack: () -> Unit) {
         Column(Modifier.fillMaxSize().padding(padding).padding(24.dp), verticalArrangement = Arrangement.Center) {
             Text("Coming soon", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(16.dp))
-            Text(if (title == "Checkout") "Checkout, payments, and sales recording will be added in the next milestone." else "Sales and financial reports will be added after checkout is implemented.", style = MaterialTheme.typography.bodyLarge)
+            Text("Detailed sales and financial reports will be added in a later milestone.", style = MaterialTheme.typography.bodyLarge)
             Spacer(Modifier.height(12.dp))
             Text("${shop.name} · No transactions are created on this screen.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(24.dp))

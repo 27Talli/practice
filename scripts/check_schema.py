@@ -47,7 +47,7 @@ def read_entities():
         ]
         entities[name] = (table, fields, primary, foreign_keys, indices)
     assert len(entities) == source.count("@Entity"), "Unparsed @Entity annotation"
-    assert len(entities) == 14, f"Expected 14 entities, found {len(entities)}"
+    assert len(entities) == 15, f"Expected 15 entities, found {len(entities)}"
     return entities
 
 

@@ -1,5 +1,6 @@
 package com.offerpoint.pos.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -70,7 +71,7 @@ data class InventoryEntity(val shopId: Long, val productId: Long, val quantity: 
 @Entity(
     tableName = "sales",
     foreignKeys = [ForeignKey(entity = ShopEntity::class, parentColumns = ["id"], childColumns = ["shopId"], onDelete = ForeignKey.RESTRICT)],
-    indices = [Index(value = ["id", "shopId"], unique = true), Index(value = ["shopId", "receiptNumber"], unique = true), Index(value = ["shopId", "createdAt"])],
+    indices = [Index(value = ["id", "shopId"], unique = true), Index(value = ["shopId", "receiptNumber"], unique = true), Index(value = ["shopId", "createdAt"]), Index(value = ["checkoutRequestId"], unique = true)],
 )
 data class SaleEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -86,6 +87,9 @@ data class SaleEntity(
     val createdAt: Long,
     val completedAt: Long?,
     val updatedAt: Long,
+    @ColumnInfo(defaultValue = "NULL") val checkoutRequestId: String? = null,
+    @ColumnInfo(defaultValue = "NULL") val requestFingerprint: String? = null,
+    @ColumnInfo(defaultValue = "0") val orderDiscountPaise: Long = 0,
 )
 
 @Entity(
@@ -218,3 +222,10 @@ data class AppSettingsEntity(@PrimaryKey val id: Int = 1, val selectedShopId: Lo
 
 @Entity(tableName = "sku_sequences")
 data class SkuSequenceEntity(@PrimaryKey val prefix: String, val nextValue: Long)
+
+/** Allocation happens inside the same transaction as the sale, so failed sales consume no number. */
+@Entity(
+    tableName = "sales_sequences",
+    foreignKeys = [ForeignKey(entity = ShopEntity::class, parentColumns = ["id"], childColumns = ["shopId"], onDelete = ForeignKey.RESTRICT)],
+)
+data class SaleSequenceEntity(@PrimaryKey val shopId: Long, val nextValue: Long)

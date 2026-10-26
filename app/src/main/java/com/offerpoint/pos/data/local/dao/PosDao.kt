@@ -149,6 +149,37 @@ interface PosDao {
     @Insert
     suspend fun insertSaleItem(item: SaleItemEntity): Long
 
+    // Request lookup is deliberately global: reusing a request in another shop must be rejected.
+    @Query("SELECT * FROM sales WHERE checkoutRequestId = :requestId LIMIT 1")
+    suspend fun findSaleByRequest(requestId: String): SaleEntity?
+
+    @Query("SELECT * FROM sales WHERE shopId = :shopId AND id = :saleId AND status = 'COMPLETED' AND completedAt IS NOT NULL")
+    suspend fun getSale(shopId: Long, saleId: Long): SaleEntity?
+
+    @Query("SELECT * FROM sale_items WHERE shopId = :shopId AND saleId = :saleId ORDER BY id")
+    suspend fun getSaleItems(shopId: Long, saleId: Long): List<SaleItemEntity>
+
+    @Query("SELECT * FROM sales WHERE shopId = :shopId AND status = 'COMPLETED' AND completedAt IS NOT NULL ORDER BY completedAt DESC, id DESC")
+    fun observeSales(shopId: Long): Flow<List<SaleEntity>>
+
+    @Query("SELECT * FROM sales WHERE shopId = :shopId AND status = 'COMPLETED' AND completedAt >= :startInclusive AND completedAt < :endExclusive ORDER BY completedAt DESC, id DESC")
+    fun observeSalesInRange(shopId: Long, startInclusive: Long, endExclusive: Long): Flow<List<SaleEntity>>
+
+    @Query("SELECT * FROM sales_sequences WHERE shopId = :shopId")
+    suspend fun getSaleSequence(shopId: Long): SaleSequenceEntity?
+
+    @Insert
+    suspend fun insertSaleSequence(sequence: SaleSequenceEntity)
+
+    @Update
+    suspend fun updateSaleSequence(sequence: SaleSequenceEntity): Int
+
+    @Query("SELECT EXISTS(SELECT 1 FROM sales WHERE shopId = :shopId AND receiptNumber = :receiptNumber)")
+    suspend fun receiptExists(shopId: Long, receiptNumber: String): Boolean
+
+    @Query("SELECT COUNT(*) FROM sales")
+    suspend fun countSales(): Int
+
     @Insert
     suspend fun insertReturn(productReturn: ReturnEntity): Long
 
