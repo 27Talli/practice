@@ -1,24 +1,56 @@
 # Delivery verification
 
-## Milestone 1 baseline
+## Verified Milestone 2 build (0.2.0)
 
-The original Android build succeeded on GitHub Actions run [40327606654](https://github.com/27Talli/practice/actions/runs/40327606654), source commit `f30ef86ccab5e1ff273d8e4e663e2712db31ccd8`. Both debug APKs, both JVM suites, live lint, instrumentation APK compilation, and v2 APK signature verification passed. The original 19 Room device tests were not run in that baseline workflow.
+[GitHub Actions run 40355529395](https://github.com/27Talli/practice/actions/runs/40355529395) completed successfully on 26 October 2026, building source commit `4de91ccdfc52ed5b180f07e50b8444930445d2c4`.
 
-## Milestone 2 verification
+| Check | Actual result |
+| --- | --- |
+| Live debug APK | Built; APK v2 signature verified |
+| Demo debug APK | Built; APK v2 signature verified |
+| JVM tests, Live | 37 passed, 0 failed/errors/skipped |
+| JVM tests, Demo | 37 passed, 0 failed/errors/skipped |
+| Live Android lint | Passed |
+| Android emulator tests | 41 passed, 0 failed/errors/skipped |
 
-The initial Milestone 2 run [40354132649](https://github.com/27Talli/practice/actions/runs/40354132649), source commit `d9e953259bde5895914289e8ae58aaa9db3030ca`, completed successfully on 26 October 2026:
+The Android suite includes 19 original foundation tests, 20 checkout transaction tests, one historical-schema migration test, and one end-to-end Compose checkout test. The screen test selects a real catalog item, completes cash payment, checks the saved confirmation and stock deduction, and reopens the sale through history using isolated real Room repositories.
 
-- Live and Demo signed debug APKs built and passed APK v2 signature verification.
-- JVM suites: **37 tests per variant**, no failures, errors, or skipped tests.
-- Live Android lint passed.
-- Android emulator: **40 Room/migration tests**, no failures, errors, or skipped tests.
-- The migration test used the actual historical Milestone 1 exported schema, validated migration to version 2 with Room, verified preservation of every business table/selection/audit history, and completed a checkout afterward.
-- The actual KSP-generated schemas 1 and 2 were recovered from checksum-verified log markers and committed for future migration testing.
+The transaction tests cover exact amounts/discounts/change, immutable price/cost/name/barcode snapshots, shop isolation, invalid and stale data rejection, concurrent duplicate requests, competing stock deductions, forced ledger failure with full rollback, persistent retry after database reopen, receipt counters, and Karachi day boundaries/total overflow.
 
-A final end-to-end Compose test has also been added to exercise the cashier's product selection, exact-cash payment, saved confirmation, and reopening history against isolated real Room repositories. Its build/device run is pending; the initial passing run did not include this additional test.
+The migration test uses the actual exported Milestone 1 schema, validates version 2 with Room, verifies preservation of existing business tables, selection, and audit history, then completes a checkout. Both actual generated schema versions are committed under `app/schemas` for future upgrade tests.
 
-Local supplemental checks pass for the 15 entity definitions and 28 DAO queries, foreign keys, barcode uniqueness, and stock isolation. They do not replace the executed Android tests.
+## APK downloads
 
-The cloud workspace lacks a local Android toolchain; GitHub Actions supplies the verified build and emulator environment. Tests do not require Internet at runtime; dependency and SDK downloads are development/CI setup only.
+- [Live APK ZIP](https://github.com/27Talli/practice/actions/runs/40355529395/artifacts/12664709915)
+- [Demo APK ZIP](https://github.com/27Talli/practice/actions/runs/40355529395/artifacts/12665871990)
+- [Test/lint reports, schemas, checksums, and emulator logs](https://github.com/27Talli/practice/actions/runs/40355529395/artifacts/12666745496)
 
-Both APKs are debug/evaluation builds. GitHub-hosted runners generate debug signing keys that may differ across runs, so they are not a reliable production upgrade channel. Do not uninstall an existing business-data installation to resolve a signing mismatch. Use a retained private release signing key for production updates. The emulator test is not a physical-phone acceptance test; the manual acceptance checklist still applies.
+Extract the ZIP and install its `.apk` on Android 8.0 or newer. GitHub may require sign-in. These artifacts are retained until 24 January 2027; the workflow can create a fresh build later.
+
+APK SHA-256 (the APK inside the ZIP, not the ZIP itself):
+
+```text
+9f2d0931d7adb16681d91fe9469bdb67165ec8816c3264e0e70058c1d6f5b78e  app-live-debug.apk
+6eeabb8d773783299b6b8b96ba401cc16076ec8de68bda7404c43c861e4ad292  app-demo-debug.apk
+```
+
+## Reproduction and limits
+
+The workflow runs these tasks with Java 17, Gradle 8.9, Android SDK/Build Tools 35, and the pinned dependency catalog:
+
+```sh
+./gradlew :app:assembleLiveDebug :app:assembleDemoDebug \
+  :app:testLiveDebugUnitTest :app:testDemoDebugUnitTest \
+  :app:lintLiveDebug :app:assembleLiveDebugAndroidTest
+./gradlew :app:connectedLiveDebugAndroidTest
+```
+
+The device suite ran on a headless Android 35 x86_64 emulator using KVM and Android's SQLite engine. This is not a physical-phone acceptance test. Follow README's manual acceptance checklist on the shops' phones.
+
+Both APKs are **debug/evaluation builds**. GitHub-hosted runners generate debug signing keys that may differ between runs. An existing Milestone 1 installation may reject a new APK as an update because its key differs. **Do not uninstall or clear business data to work around that error.** Reliable production updates require a retained private release signing key and a verified data-preserving upgrade process.
+
+The local cloud workspace lacks Android SDK/Gradle/JDK compiler; GitHub Actions supplied the actual build and emulator environment. Tests do not require Internet at runtime; dependency and SDK downloads are development setup only.
+
+## Earlier baseline
+
+Milestone 1 build [40327606654](https://github.com/27Talli/practice/actions/runs/40327606654), source `f30ef86ccab5e1ff273d8e4e663e2712db31ccd8`, passed both APK builds, both JVM suites, lint, test APK compilation, and signature checks; it did not execute device tests. The first Milestone 2 run [40354132649](https://github.com/27Talli/practice/actions/runs/40354132649) passed 37 JVM tests per variant and 40 database/migration device tests before the final screen test was added.

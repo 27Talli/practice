@@ -4,6 +4,14 @@ An offline Android retail foundation for **Offer Point** and **Fancy Footwears**
 
 Milestone 2 adds **real offline cash checkout** to the shop, product, and inventory foundation. It saves sales and stock deductions atomically, shows shop-specific sales history, and calculates today’s sales from saved records using Pakistan time. Camera scanning, receipt generation/printing, returns, financial reports, expenses UI, and backups remain deferred.
 
+## Current verified build
+
+Version **0.2.0** passed [build run 40355529395](https://github.com/27Talli/practice/actions/runs/40355529395): 37 JVM tests per variant, Android lint, and 41 Android emulator tests including the real checkout UI and version 1 → 2 migration.
+
+[Download Live APK ZIP](https://github.com/27Talli/practice/actions/runs/40355529395/artifacts/12664709915) · [Download Demo APK ZIP](https://github.com/27Talli/practice/actions/runs/40355529395/artifacts/12665871990)
+
+Extract the ZIP to install the APK. Use Demo for evaluation; it keeps sample products/sales separate. These are debug builds: an existing app may reject a differently signed update. **Do not uninstall or clear existing business data to resolve a signing mismatch.** See the signing and upgrade notes below and [VERIFICATION.md](VERIFICATION.md).
+
 ## Requirements and opening the project
 
 - Android Studio supporting Android Gradle Plugin 8.7.3, with **JDK 17** selected as the Gradle JDK.
