@@ -6,10 +6,19 @@ The original Android build succeeded on GitHub Actions run [40327606654](https:/
 
 ## Milestone 2 verification
 
-Milestone 2 implementation is written; the new build and emulator run are pending. Do not treat source presence as successful compilation or passing tests.
+The initial Milestone 2 run [40354132649](https://github.com/27Talli/practice/actions/runs/40354132649), source commit `d9e953259bde5895914289e8ae58aaa9db3030ca`, completed successfully on 26 October 2026:
 
-Local supplemental checks pass for the 15 entity definitions and current DAO SQL, foreign keys, barcode uniqueness, and stock isolation. These checks use Python’s SQLite and do not replace Room or Android testing.
+- Live and Demo signed debug APKs built and passed APK v2 signature verification.
+- JVM suites: **37 tests per variant**, no failures, errors, or skipped tests.
+- Live Android lint passed.
+- Android emulator: **40 Room/migration tests**, no failures, errors, or skipped tests.
+- The migration test used the actual historical Milestone 1 exported schema, validated migration to version 2 with Room, verified preservation of every business table/selection/audit history, and completed a checkout afterward.
+- The actual KSP-generated schemas 1 and 2 were recovered from checksum-verified log markers and committed for future migration testing.
 
-The updated workflow will build Live and Demo, run JVM tests for each, run live lint, validate APK signatures, and execute all 40 Room/migration tests on an Android emulator. Actual run results, APK checksums, and any remaining limits will be recorded here after execution.
+A final end-to-end Compose test has also been added to exercise the cashier's product selection, exact-cash payment, saved confirmation, and reopening history against isolated real Room repositories. Its build/device run is pending; the initial passing run did not include this additional test.
 
-The local cloud workspace still lacks Android SDK/Gradle/JDK compiler; GitHub Actions supplies the build environment. No local dependency-download approval is required for that route.
+Local supplemental checks pass for the 15 entity definitions and 28 DAO queries, foreign keys, barcode uniqueness, and stock isolation. They do not replace the executed Android tests.
+
+The cloud workspace lacks a local Android toolchain; GitHub Actions supplies the verified build and emulator environment. Tests do not require Internet at runtime; dependency and SDK downloads are development/CI setup only.
+
+Both APKs are debug/evaluation builds. GitHub-hosted runners generate debug signing keys that may differ across runs, so they are not a reliable production upgrade channel. Do not uninstall an existing business-data installation to resolve a signing mismatch. Use a retained private release signing key for production updates. The emulator test is not a physical-phone acceptance test; the manual acceptance checklist still applies.
