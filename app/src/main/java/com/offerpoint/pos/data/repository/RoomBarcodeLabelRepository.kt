@@ -21,6 +21,7 @@ class RoomBarcodeLabelRepository(
     private val now: () -> Long = System::currentTimeMillis,
 ) : BarcodeLabelRepository {
     private val dao = database.posDao()
+    private val random = SecureRandom()
 
     override suspend fun getOrCreateCostCodeSettings(shopId: Long): CostCodeSettings = database.withWriteTransaction {
         val settings = ensureSettings(shopId)
@@ -65,26 +66,22 @@ class RoomBarcodeLabelRepository(
         }
         val settings = ensureSettings(shopId)
         val code = CostCode.encode(association.purchaseCostPaise, settings.alphabet)
+        dao.findMatchingCostLabelId(shopId,productId,product.sku,product.name,product.variant,association.purchaseCostPaise,code,settings.alphabet,demoMode)?.let { id ->
+            return@withWriteTransaction dao.getLabelRow(shopId,id)?.toDomain() ?: error("The registered label could not be read.")
+        }
         // A physical Demo sticker must never resolve to a Live alias, even if both keys encode zero alike.
         val base = (if (demoMode) "DEMO~" else "") + "${product.sku}~$code"
-        var suffix = 0L
         var value: String
+        var attempts = 0
         while (true) {
-            value = if (suffix == 0L) base else "$base~$suffix"
+            // Random revisions avoid recreating a lost printed alias after an older backup is restored.
+            // Twenty decimal digits keep the 64-bit ID compact in Code 128's numeric encoding.
+            val revision=java.lang.Long.toUnsignedString(random.nextLong()).padStart(20,'0')
+            value = "$base~$revision"
             if (value.length > 80) throw ValidationException("barcode", "This internal barcode is too long for a Code 128 label.")
             val existing = dao.findBarcodeByValue(value)
             if (existing == null) break
-            val old = dao.getProductLabel(existing.id)
-            if (existing.kind == "COST_LABEL" && existing.productId == productId && old != null &&
-                old.shopId == shopId && old.productId == productId && old.skuSnapshot == product.sku &&
-                old.nameSnapshot == product.name && old.variantSnapshot == product.variant &&
-                old.purchaseCostPaise == association.purchaseCostPaise && old.costCode == code &&
-                old.alphabetSnapshot == settings.alphabet) {
-                return@withWriteTransaction dao.getLabelRow(shopId, old.barcodeId)?.toDomain()
-                    ?: throw ValidationException("barcode", "The existing label could not be read.")
-            }
-            if (suffix == Long.MAX_VALUE) throw ValidationException("barcode", "No unique internal label value is available.")
-            suffix++
+            if (++attempts >= 32) throw ValidationException("barcode", "No unique internal label value is available. Try again.")
         }
         val timestamp = now()
         val barcodeId = dao.insertBarcode(ProductBarcodeEntity(

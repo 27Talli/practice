@@ -138,6 +138,7 @@ class BackupDatabaseTest {
             val demoFile=uri();demoRepo.export(demoFile,password);val before=fingerprint();failure{backups.inspect(demoFile,password)};assertEquals(before,fingerprint())
             val liveFile=uri();backups.export(liveFile,password);failure{demoRepo.inspect(liveFile,password)}
         }finally{demoDb.close()}
+        Unit
     }
 
     @Test fun unwritableOrUnreadableRecoveryFilesAndReusingTheSourcePreventRestore()=runBlocking {
@@ -179,6 +180,23 @@ class BackupDatabaseTest {
         val request=CheckoutRequest("rescue-fixture",1,listOf(CheckoutLine(1,1,200)),amountPaidPaise=500)
         assertEquals("OP-S-000001",sales.completeSale(request).summary.receiptNumber)
         assertEquals(1,db.posDao().countSales());assertEquals(2L,products.getProduct(1,1)?.quantity)
+    }
+
+    @Test fun restoringOlderRecordsNeverReissuesPreviouslyUsedSkusReceiptNumbersOrCostAliases()=runBlocking {
+        val destination=uri();backups.export(destination,password);val preview=backups.inspect(destination,password)
+        val laterProduct=products.createProduct(1,ProductDraft("After backup","Test",purchaseCostPaise=1,sellingPricePaise=2,openingQuantity=1))
+        val laterSku=requireNotNull(products.getProduct(1,laterProduct)).sku
+        val laterSale=sales.completeSale(CheckoutRequest("later-sale",1,listOf(CheckoutLine(productId,1,20000)),amountPaidPaise=20000))
+        products.updateProduct(1,productId,ProductDraft("Changed cost","Cosmetics",purchaseCostPaise=13000,sellingPricePaise=20000))
+        val laterLabel=labels.createLabel(1,productId)
+        backups.restore(preview.token,uri(),password)
+        assertNull(labels.findLabelByValue(laterLabel.barcodeValue))
+        val newerProduct=products.createProduct(1,ProductDraft("New after restore","Test",purchaseCostPaise=1,sellingPricePaise=2))
+        assertTrue(newerProduct>laterProduct);assertNotEquals(laterSku,products.getProduct(1,newerProduct)?.sku)
+        val newerSale=sales.completeSale(CheckoutRequest("newer-sale",1,listOf(CheckoutLine(productId,1,20000)),amountPaidPaise=20000))
+        assertNotEquals(laterSale.summary.receiptNumber,newerSale.summary.receiptNumber);assertTrue(newerSale.summary.id>laterSale.summary.id)
+        products.updateProduct(1,productId,ProductDraft("Changed cost","Cosmetics",purchaseCostPaise=13000,sellingPricePaise=20000))
+        assertNotEquals(laterLabel.barcodeValue,labels.createLabel(1,productId).barcodeValue)
     }
 
     @Test fun maximumLongMoneyAndQuantityRemainExactAcrossBackupAndRestore()=runBlocking {

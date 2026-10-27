@@ -236,6 +236,15 @@ interface PosDao {
     suspend fun getProductLabel(barcodeId: Long): ProductLabelEntity?
 
     @Query("""
+        SELECT l.barcodeId FROM product_labels l JOIN product_barcodes b ON b.id=l.barcodeId AND b.productId=l.productId
+        WHERE l.shopId=:shopId AND l.productId=:productId AND l.skuSnapshot=:sku AND l.nameSnapshot=:name AND l.variantSnapshot=:variant
+          AND l.purchaseCostPaise=:cost AND l.costCode=:code AND l.alphabetSnapshot=:alphabet AND b.kind='COST_LABEL'
+          AND (b.value LIKE 'DEMO~%')=:demo
+        ORDER BY l.barcodeId DESC LIMIT 1
+    """)
+    suspend fun findMatchingCostLabelId(shopId: Long, productId: Long, sku: String, name: String, variant: String, cost: Long, code: String, alphabet: String, demo: Boolean): Long?
+
+    @Query("""
         SELECT l.barcodeId, l.shopId, l.productId, l.skuSnapshot AS sku,
             l.nameSnapshot AS name, l.variantSnapshot AS variant, b.value AS barcodeValue,
             l.costCode, l.purchaseCostPaise, l.alphabetSnapshot, l.createdAt

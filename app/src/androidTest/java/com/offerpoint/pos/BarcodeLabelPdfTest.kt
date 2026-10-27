@@ -11,6 +11,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.offerpoint.pos.domain.model.InternalBarcodeLabel
 import com.offerpoint.pos.ui.labels.LabelPdfExporter
+import com.offerpoint.pos.ui.labels.LabelBarcodePattern
 import com.offerpoint.pos.ui.scanner.LuminanceFrame
 import com.offerpoint.pos.ui.scanner.RetailBarcodeDecoder
 import org.junit.Assert.assertEquals
@@ -22,10 +23,16 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class BarcodeLabelPdfTest {
     @Test fun exportedPdfCanBeReadByTheScannerAndSharedThroughThePrivateProvider() {
+        assertReadable("OP-000001~LAHHB",13,2)
+    }
+    @Test fun labelWithRestoreSafeNumericRevisionStillScansFromItsPrintedPdf() {
+        assertReadable("OP-000001~LAHHB~18446744073709551615",1,1)
+    }
+    private fun assertReadable(value:String,quantity:Int,pageCount:Int) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val label = InternalBarcodeLabel(1, 1, 1, "OP-000001", "Rose lipstick", "Red",
-            "OP-000001~LAHHB", "LAHHB", 12_550, "BLACKHORSE", 1)
-        val file = LabelPdfExporter.write(context, "Offer Point", label, 13)
+            value, "LAHHB", 12_550, "BLACKHORSE", 1)
+        val file = LabelPdfExporter.write(context, "Offer Point", label, quantity)
         try {
             assertTrue(file.length() > 0)
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)
@@ -38,10 +45,12 @@ class BarcodeLabelPdfTest {
             }
             ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
                 PdfRenderer(descriptor).use { renderer ->
-                    assertEquals(2, renderer.pageCount)
+                    assertEquals(pageCount, renderer.pageCount)
                     renderer.openPage(0).use { page ->
                         // Rasterize the first label at 288 dpi, including its quiet zone.
-                        val bitmap = Bitmap.createBitmap(1090, 432, Bitmap.Config.ARGB_8888)
+                        val columns=LabelBarcodePattern.columnsFor(value)
+                        val width=((595-52-14*(columns-1)).toFloat()/columns*4).toInt()
+                        val bitmap = Bitmap.createBitmap(width, 432, Bitmap.Config.ARGB_8888)
                         try {
                             bitmap.eraseColor(Color.WHITE)
                             val matrix = Matrix().apply { setScale(4f, 4f); postTranslate(-104f, -104f) }

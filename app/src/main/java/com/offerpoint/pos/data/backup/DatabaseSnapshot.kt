@@ -133,6 +133,10 @@ object DatabaseSnapshot {
     }
 
     fun replace(target: SupportSQLiteDatabase, source: SupportSQLiteDatabase) {
+        // Keep higher already-issued IDs/references, even when restoring older business records.
+        val skuCounters=target.query("SELECT prefix,nextValue FROM sku_sequences").use { c -> buildMap<String,Long> { while(c.moveToNext())put(c.getString(0),c.getLong(1)) } }
+        val saleCounters=target.query("SELECT shopId,nextValue FROM sales_sequences").use { c -> buildMap<Long,Long> { while(c.moveToNext())put(c.getLong(0),c.getLong(1)) } }
+        val rowCounters=target.query("SELECT name,seq FROM sqlite_sequence").use { c -> buildMap<String,Long> { while(c.moveToNext())put(c.getString(0),c.getLong(1)) } }
         for (table in tables.asReversed()) target.execSQL("DELETE FROM `$table`")
         for (table in tables) {
             val cols = columns(target, table)
@@ -146,6 +150,19 @@ object DatabaseSnapshot {
         }
         target.execSQL("DELETE FROM sqlite_sequence")
         source.query("SELECT name,seq FROM sqlite_sequence").use { c -> while(c.moveToNext()) target.execSQL("INSERT INTO sqlite_sequence(name,seq) VALUES (?,?)", arrayOf(c.getString(0),c.getLong(1))) }
+        for((prefix,value) in skuCounters) {
+            target.execSQL("INSERT OR IGNORE INTO sku_sequences(prefix,nextValue) VALUES (?,?)",arrayOf(prefix,value))
+            target.execSQL("UPDATE sku_sequences SET nextValue=MAX(nextValue,?) WHERE prefix=?",arrayOf(value,prefix))
+        }
+        for((shopId,value) in saleCounters) {
+            target.execSQL("INSERT OR IGNORE INTO sales_sequences(shopId,nextValue) VALUES (?,?)",arrayOf(shopId,value))
+            target.execSQL("UPDATE sales_sequences SET nextValue=MAX(nextValue,?) WHERE shopId=?",arrayOf(value,shopId))
+        }
+        for((table,value) in rowCounters) {
+            val restored=target.query("SELECT seq FROM sqlite_sequence WHERE name=?",arrayOf(table)).use { c -> if(c.moveToFirst()) c.getLong(0) else 0 }
+            target.execSQL("DELETE FROM sqlite_sequence WHERE name=?",arrayOf(table))
+            target.execSQL("INSERT INTO sqlite_sequence(name,seq) VALUES (?,?)",arrayOf(table,maxOf(value,restored)))
+        }
     }
 
     private class LimitedOutput(output: OutputStream) : FilterOutputStream(output) {
