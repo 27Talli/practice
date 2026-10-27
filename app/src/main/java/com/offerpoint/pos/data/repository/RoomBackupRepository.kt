@@ -15,6 +15,7 @@ import com.offerpoint.pos.domain.usecase.BuildReceipt
 import com.offerpoint.pos.domain.usecase.CostCode
 import com.offerpoint.pos.domain.usecase.ReceiptValidation
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -79,21 +80,26 @@ class RoomBackupRepository(context: Context, private val database: PosDatabase, 
             val recovery = encryptedSnapshot(password)
             try {
                 saveVerified(recovery.file, recoveryDestination)
-                val source = Room.databaseBuilder(context, PosDatabase::class.java, stage.database.absolutePath).build()
-                try {
-                    database.withRestoreTransaction {
-                        val target = database.openHelper.writableDatabase
-                        require(DatabaseSnapshot.fingerprint(target) == recovery.fingerprint) { "Shop data changed while saving the recovery backup. Nothing was replaced; inspect and try again." }
-                        DatabaseSnapshot.replace(target, source.openHelper.readableDatabase)
-                        val settings = requireNotNull(database.posDao().getSettings())
-                        database.posDao().upsertSettings(settings.copy(dataGeneration = UUID.randomUUID().toString()))
-                        database.posDao().insertAudit(AuditEventEntity(entityType = "DATABASE", entityId = 0, shopId = null,
-                            action = "RESTORE_BACKUP", beforeValue = "{\"recoveryBackupId\":\"${recovery.result.backupId}\"}",
-                            afterValue = "{\"backupId\":\"${stage.preview.backupId}\"}", createdAt = now()))
-                        target.query("PRAGMA foreign_key_check").use { require(it.count == 0) { "Restored relationships are invalid." } }
-                    }
-                } finally { source.close() }
-                discard(token)
+                // Namespace changes may dispose the confirming ViewModel immediately after commit.
+                // Finish source closure and token cleanup before honoring that cancellation.
+                withContext(NonCancellable) {
+                    require(sha256(stage.database) == stage.sha256) { "The inspected backup changed. Inspect it again." }
+                    val source = Room.databaseBuilder(context, PosDatabase::class.java, stage.database.absolutePath).build()
+                    try {
+                        database.withRestoreTransaction {
+                            val target = database.openHelper.writableDatabase
+                            require(DatabaseSnapshot.fingerprint(target) == recovery.fingerprint) { "Shop data changed while saving the recovery backup. Nothing was replaced; inspect and try again." }
+                            DatabaseSnapshot.replace(target, source.openHelper.readableDatabase)
+                            val settings = requireNotNull(database.posDao().getSettings())
+                            database.posDao().upsertSettings(settings.copy(dataGeneration = UUID.randomUUID().toString()))
+                            database.posDao().insertAudit(AuditEventEntity(entityType = "DATABASE", entityId = 0, shopId = null,
+                                action = "RESTORE_BACKUP", beforeValue = "{\"recoveryBackupId\":\"${recovery.result.backupId}\"}",
+                                afterValue = "{\"backupId\":\"${stage.preview.backupId}\"}", createdAt = now()))
+                            target.query("PRAGMA foreign_key_check").use { require(it.count == 0) { "Restored relationships are invalid." } }
+                        }
+                    } finally { source.close() }
+                    discard(token)
+                }
             } finally { recovery.file.delete() }
         }
     }

@@ -216,6 +216,18 @@ class BackupDatabaseTest {
         failure{backups.restore(preview.token,uri(),password)};assertEquals(before,fingerprint());backups.discard(preview.token)
     }
 
+    @Test fun cancellationAfterDatasetCommitStillFinishesStagingCleanup()=runBlocking {
+        val destination=uri();backups.export(destination,password);val preview=backups.inspect(destination,password)
+        inventory.adjustStock(1,productId,1,"After snapshot")
+        val recovery=uri()
+        val restoring=launch(Dispatchers.IO,start=CoroutineStart.LAZY){backups.restore(preview.token,recovery,password)}
+        val observing=launch(Dispatchers.IO){backups.observeGeneration().first{it.isNotEmpty()};restoring.cancel()}
+        withTimeout(60_000) { restoring.start();restoring.join();observing.join() }
+        assertEquals(6L,products.getProduct(1,productId)?.quantity)
+        assertFalse(context.cacheDir.walkTopDown().any{it.name=="${preview.token}.db"})
+        assertEquals(1L,backups.inspect(recovery,password).counts["sales"])
+    }
+
     @Test fun discardedPreviewCannotReplaceData()=runBlocking {
         val destination=uri();backups.export(destination,password);val preview=backups.inspect(destination,password);backups.discard(preview.token)
         val before=fingerprint();failure{backups.restore(preview.token,uri(),password)};assertEquals(before,fingerprint())
