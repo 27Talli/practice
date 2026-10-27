@@ -17,7 +17,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 fun BarcodeCaptureDialog(title: String, description: String, onCaptured: (String, String) -> Unit, onDismiss: () -> Unit, receiptQrOnly: Boolean = false) {
     val owner = LocalLifecycleOwner.current
     var accepted by remember { mutableStateOf(false) }
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    // Disarm immediately on cancel, including the frame before camera disposal/recomposition.
+    val dismiss: () -> Unit = { accepted = true; onDismiss() }
+    Dialog(onDismissRequest = dismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxWidth().padding(16.dp), shape = MaterialTheme.shapes.extraLarge) {
             Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(title, style = MaterialTheme.typography.titleLarge)
@@ -28,7 +30,7 @@ fun BarcodeCaptureDialog(title: String, description: String, onCaptured: (String
                         onCaptured(value, format)
                     }
                 })
-                OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Cancel scanning") }
+                OutlinedButton(onClick = dismiss, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Cancel scanning") }
             }
         }
     }
