@@ -1,0 +1,57 @@
+name: Verify pre-sync application and backup baseline
+
+on:
+  push:
+    branches: [upgrade/offline-multi-device-sync]
+    paths:
+      - 'docs/sync/**'
+      - '!docs/sync/VERIFICATION.md'
+      - '!docs/sync/README.md'
+      - 'scripts/audit_sync_baseline.py'
+      - '.github/workflows/sync-baseline-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-baseline-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - name: Check original runtime and schema inventory
+        run: python3 scripts/audit_sync_baseline.py
+      - name: Verify host backup recovery interoperability
+        run: python3 scripts/test_rescue_tool.py
+      - name: Install Android SDK
+        run: python3 scripts/install-android-sdk.py
+      - name: Check SQLite relationships and queries
+        run: python3 scripts/check_schema.py
+      - name: Build the preserved app and run unit tests and lint
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon --max-workers=2 :app:assembleLiveDebug :app:assembleDemoDebug \
+            :app:testLiveDebugUnitTest :app:testDemoDebugUnitTest :app:lintLiveDebug :app:assembleLiveDebugAndroidTest
+      - name: Verify native migrations, encrypted backup restore and existing features
+        run: bash scripts/run-android-tests.sh
+      - name: Retain actual audit verification reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-sync-baseline-reports
+          path: |
+            docs/sync/baseline-inventory.json
+            app/build/reports/
+            app/build/test-results/
+            app/build/outputs/androidTest-results/
+          retention-days: 90
