@@ -34,7 +34,7 @@ class Migration5Test {
             execSQL("INSERT INTO receipt_settings VALUES(1,'ROLL_58','Existing footer',1)");close()
         }
         helper.runMigrationsAndValidate(name,5,true,MIGRATION_4_5).close()
-        val db=Room.databaseBuilder(context,PosDatabase::class.java,name).addMigrations(MIGRATION_4_5).build()
+        val db=Room.databaseBuilder(context,PosDatabase::class.java,name).addMigrations(MIGRATION_4_5, MIGRATION_5_6).build()
         try {
             val repo=RoomShopRepository(db,false);repo.initialize()
             assertEquals(2L,repo.observeSelectedShop().first()?.id);assertEquals("",db.posDao().observeDataGeneration().first())

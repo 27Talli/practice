@@ -15,8 +15,9 @@ import com.offerpoint.pos.data.local.entity.*
         SaleSequenceEntity::class,
         CostCodeSettingsEntity::class, ProductLabelEntity::class,
         ReceiptSettingsEntity::class,
+        ReturnSequenceEntity::class, OwnerSecurityEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 abstract class PosDatabase : RoomDatabase() {

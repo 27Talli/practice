@@ -137,6 +137,7 @@ data class ProductFormInput(
     val cost: String,
     val price: String,
     val opening: String,
+    val reorder: String = "5",
 )
 
 data class ProductEditorState(
@@ -220,11 +221,12 @@ class ProductEditorViewModel(
                         purchaseCostPaise = Money.parse(input.cost),
                         sellingPricePaise = Money.parse(input.price),
                         openingQuantity = if (productId == null) Quantity.parse(input.opening) else 0,
+                        reorderLevel = Quantity.parse(input.reorder),
                     ),
                 )
                 when {
                     productId != null -> repository.updateProduct(shopId, productId, draft)
-                    associatedProductId != null -> repository.associateProduct(shopId, associatedProductId, draft.purchaseCostPaise, draft.sellingPricePaise, draft.openingQuantity)
+                    associatedProductId != null -> repository.associateProduct(shopId, associatedProductId, draft.purchaseCostPaise, draft.sellingPricePaise, draft.openingQuantity, draft.reorderLevel)
                     else -> repository.createProduct(shopId, draft)
                 }
                 mutableState.update { it.copy(saved = true) }

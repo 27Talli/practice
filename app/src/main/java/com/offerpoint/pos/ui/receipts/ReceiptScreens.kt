@@ -25,13 +25,30 @@ import com.offerpoint.pos.ui.components.StatusCard
 import com.offerpoint.pos.ui.screens.LoadingContent
 import com.offerpoint.pos.ui.screens.PosScaffold
 import com.offerpoint.pos.ui.screens.PosViewModelFactory
+import com.offerpoint.pos.ui.printing.PrinterSettings
+import com.offerpoint.pos.ui.printing.ThermalPrinter
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collect
 
 @Composable
 fun ReceiptScreen(shop: Shop, saleId: Long, sales: SalesRepository, preferences: ReceiptSettingsRepository, onBack: () -> Unit) {
     val vm: ReceiptViewModel = viewModel(key = "receipt-${shop.id}-$saleId", factory = PosViewModelFactory { ReceiptViewModel(sales, preferences, shop, saleId, BuildConfig.DEMO_MODE) })
+    ReceiptContent(shop,vm,preferences,onBack)
+}
+
+@Composable
+fun RefundReceiptScreen(shop:Shop,returnId:Long,refunds:com.offerpoint.pos.domain.repository.RefundRepository,preferences:ReceiptSettingsRepository,onBack:()->Unit){
+    val vm:RefundReceiptViewModel=viewModel(key="refund-receipt-${shop.id}-$returnId",factory=PosViewModelFactory{RefundReceiptViewModel(refunds,preferences,shop,returnId,BuildConfig.DEMO_MODE)})
+    ReceiptContent(shop,vm,preferences,onBack)
+}
+
+@Composable
+private fun ReceiptContent(shop:Shop,vm:ReceiptDocumentViewModel,preferences:ReceiptSettingsRepository,onBack:()->Unit){
     val state by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var printing by remember { mutableStateOf(false) }
+    var printerNotice by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(vm, context) {
         vm.pdfExports.collect { file ->
             try {
@@ -54,7 +71,7 @@ fun ReceiptScreen(shop: Shop, saleId: Long, sales: SalesRepository, preferences:
                 val receipt = state.receipt!!
                 LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     item { Text("Receipt preview", style = MaterialTheme.typography.headlineMedium) }
-                    item { StatusCard("Saved sale", "Reprinting or sharing uses this same sale reference. Your stock and sales remain unchanged.") }
+                    item { StatusCard("Saved record", "Reprinting or sharing uses this same receipt reference. Your stock and transactions remain unchanged.") }
                     item { PaperChoices(state.paper, vm::paper, !state.exporting) }
                     item {
                         Button(onClick = { vm.export(context) }, enabled = !state.exporting, modifier = Modifier.fillMaxWidth().height(54.dp)) { Text(if (state.exporting) "Creating PDF…" else "Share receipt PDF") }
@@ -63,6 +80,21 @@ fun ReceiptScreen(shop: Shop, saleId: Long, sales: SalesRepository, preferences:
                             catch (error: Exception) { vm.reportError(error.message ?: "Android printing could not open. Share the PDF instead.") }
                         }, enabled = !state.exporting, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(54.dp)) { Text("Print receipt") }
                         Text("Choose a compatible printer or Save as PDF in Android’s print dialog. Printer availability depends on the installed print service.", Modifier.padding(top = 8.dp), style = MaterialTheme.typography.bodySmall)
+                        OutlinedButton(onClick = {
+                            printing = true; printerNotice = null
+                            scope.launch {
+                                try {
+                                    val settings = preferences.getSettings(shop.id)
+                                    require(settings.printerMode != PrinterMode.ANDROID) { "Select a Bluetooth or USB printer in Settings → Receipts & printing first." }
+                                    ThermalPrinter(context).send(receipt, settings)
+                                    printerNotice = "Receipt data sent. Check the physical printer before printing another copy."
+                                } catch (error: Exception) {
+                                    if (error is kotlinx.coroutines.CancellationException) throw error
+                                    vm.reportError(error.message ?: "The printer could not be reached. Check the paper before retrying.")
+                                } finally { printing = false }
+                            }
+                        }, enabled = !printing && !state.exporting, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(54.dp)) { Text(if (printing) "Sending to printer…" else "Print to saved thermal printer") }
+                        if (printerNotice != null) StatusCard("Printer status", printerNotice!!)
                     }
                     if (state.error != null) item { ErrorNotice(state.error!!) }
                     item {
@@ -71,7 +103,7 @@ fun ReceiptScreen(shop: Shop, saleId: Long, sales: SalesRepository, preferences:
                                 if (receipt.demo) Text("DEMO - NOT A REAL SALE", style = MaterialTheme.typography.titleMedium)
                                 Text(receipt.shopName, style = MaterialTheme.typography.titleLarge)
                                 Text(receipt.shopAddress, style = MaterialTheme.typography.bodySmall)
-                                Text("SALE RECEIPT", style = MaterialTheme.typography.titleMedium)
+                                Text(receipt.title, style = MaterialTheme.typography.titleMedium)
                                 Text("Receipt: ${receipt.receiptNumber}")
                                 Text(receipt.soldAt, style = MaterialTheme.typography.bodySmall)
                             }
@@ -90,7 +122,7 @@ fun ReceiptScreen(shop: Shop, saleId: Long, sales: SalesRepository, preferences:
                             }
                         }
                     }
-                    item { Text("Preview text wraps to the selected paper size in the PDF and print dialog. Returns are coming in a later milestone.", style = MaterialTheme.typography.bodySmall) }
+                    item { Text("The PDF and print dialog wrap this saved record to the selected paper size.", style = MaterialTheme.typography.bodySmall) }
                 }
             }
         }
@@ -125,7 +157,7 @@ fun ReceiptSettingsScreen(shop: Shop, repository: ReceiptSettingsRepository, onB
                 }, modifier = Modifier.fillMaxWidth().height(54.dp)) { Text("Open Android print settings") }
                 if (printerError != null) ErrorNotice(printerError!!)
             }
-            item { StatusCard("Printer compatibility", "Android printing uses an installed printer service. Save as PDF works without a physical printer. Direct Bluetooth/USB thermal pairing will be added for your printer model; it is not connected automatically.") }
+            item { PrinterSettings(shop, repository, ReceiptPaper.valueOf(paperName), vm::load) }
         }
     }
 }

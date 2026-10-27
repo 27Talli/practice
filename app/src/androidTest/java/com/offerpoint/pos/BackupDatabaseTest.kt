@@ -180,6 +180,9 @@ class BackupDatabaseTest {
         val request=CheckoutRequest("rescue-fixture",1,listOf(CheckoutLine(1,1,200)),amountPaidPaise=500)
         assertEquals("OP-S-000001",sales.completeSale(request).summary.receiptNumber)
         assertEquals(1,db.posDao().countSales());assertEquals(2L,products.getProduct(1,1)?.quantity)
+        assertEquals(5L,products.getProduct(1,1)?.reorderLevel)
+        assertEquals("",sales.getSale(1,100)?.items?.single()?.category)
+        assertEquals(PrinterMode.ANDROID,RoomReceiptSettingsRepository(db).getSettings(1).printerMode)
     }
 
     @Test fun restoringOlderRecordsNeverReissuesPreviouslyUsedSkusReceiptNumbersOrCostAliases()=runBlocking {
@@ -231,5 +234,47 @@ class BackupDatabaseTest {
     @Test fun discardedPreviewCannotReplaceData()=runBlocking {
         val destination=uri();backups.export(destination,password);val preview=backups.inspect(destination,password);backups.discard(preview.token)
         val before=fingerprint();failure{backups.restore(preview.token,uri(),password)};assertEquals(before,fingerprint())
+    }
+
+    @Test fun versionSixBackupKeepsRefundsVoidedExpensesProfilesAndReturnCountersButRetainsThisDevicesPin()=runBlocking {
+        val refunds=RoomRefundRepository(db);val expenses=RoomExpenseRepository(db)
+        val item=saved.items.single();val first=RefundRequest("backup-return-first",1,saved.summary.id,listOf(RefundLine(item.saleItemId,1,1)),"Colour",19600)
+        val returned=refunds.post(first)
+        val expense=expenses.add(ExpenseDraft("backup-expense",1,5000,"Rent","Test",1));expenses.void(1,expense.id,"Incorrect date")
+        val profile=ReceiptSettings(1,ReceiptPaper.ROLL_58,"Refund footer",PrinterMode.USB,"123:456","Synthetic printer",true)
+        RoomReceiptSettingsRepository(db).saveSettings(profile)
+        val alias="backup-pin-test-${UUID.randomUUID()}";val security=RoomSecurityRepository(db,alias)
+        try {
+            security.configure(charArrayOf(),"123456".toCharArray(),2)
+            val destination=uri();backups.export(destination,password)
+            val decoded=ByteArrayOutputStream();BackupCipher.decrypt(read(destination).inputStream(),decoded,password)
+            assertFalse(decoded.toString("UTF-8").contains("owner_security"));assertFalse(decoded.toString("UTF-8").contains("pinHash"))
+            val preview=backups.inspect(destination,password)
+            val later=refunds.post(first.copy(requestId="after-backup-return",lines=listOf(RefundLine(item.saleItemId,1,0))))
+            security.configure("123456".toCharArray(),"654321".toCharArray(),5);val currentSecurity=db.posDao().getSecurity()
+            backups.restore(preview.token,uri(),password)
+            assertEquals(currentSecurity,db.posDao().getSecurity());assertTrue(security.verify("654321".toCharArray()))
+            assertEquals(returned,refunds.get(1,returned.id));assertTrue(expenses.observe(1).first().single().isVoided)
+            assertEquals(profile,RoomReceiptSettingsRepository(db).getSettings(1));assertEquals(7L,products.getProduct(1,productId)?.quantity)
+            val newest=refunds.post(first.copy(requestId="after-restore-return",lines=listOf(RefundLine(item.saleItemId,1,0))))
+            assertNotEquals(later.receiptNumber,newest.receiptNumber);assertTrue(newest.id>later.id)
+            val again=uri();backups.export(again,password);assertEquals(2L,backups.inspect(again,password).counts["returns"])
+        }finally{java.security.KeyStore.getInstance("AndroidKeyStore").apply{load(null);deleteEntry(alias)}}
+    }
+
+    @Test fun damagedRefundAmountAndMissingRestockLedgerAreRejectedBeforeRestore()=runBlocking {
+        val item=saved.items.single();RoomRefundRepository(db).post(RefundRequest("tamper-return",1,saved.summary.id,listOf(RefundLine(item.saleItemId,1,1)),"Colour",19600))
+        val destination=uri();backups.export(destination,password);val before=fingerprint()
+        val badAmount=mutate(destination){json->val tables=json.getJSONArray("tables");for(i in 0 until tables.length()) {
+            val table=tables.getJSONObject(i);if(table.getString("name")=="return_items") {
+                val columns=table.getJSONArray("columns");val index=(0 until columns.length()).first{columns.getString(it)=="refundPaise"};table.getJSONArray("rows").getJSONArray(0).put(index,19601)
+            }
+        }}
+        val noLedger=mutate(destination){json->val tables=json.getJSONArray("tables");for(i in 0 until tables.length()) {
+            val table=tables.getJSONObject(i);if(table.getString("name")=="stock_movements") {
+                val rows=table.getJSONArray("rows");rows.remove(rows.length()-1);table.put("rowCount",rows.length())
+            }
+        }}
+        failure{backups.inspect(badAmount,password)};failure{backups.inspect(noLedger,password)};assertEquals(before,fingerprint())
     }
 }

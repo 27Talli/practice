@@ -156,6 +156,8 @@ internal fun DashboardScreen(
     onCheckout: () -> Unit,
     onSales: () -> Unit,
     onReports: () -> Unit,
+    onRefunds: () -> Unit,
+    onExpenses: () -> Unit,
     onSettings: () -> Unit,
     onSwitch: () -> Unit,
 ) {
@@ -178,10 +180,10 @@ internal fun DashboardScreen(
             }
             item {
                 when {
-                    today.loading -> StatusCard("Today’s sales", "Loading saved sales…")
+                    today.loading -> StatusCard("Today’s sales", "Loading saved activity…")
                     today.error != null -> ErrorNotice(today.error, onRetryToday)
                     else -> today.sales?.let { sales ->
-                        StatusCard("Today’s sales · Pakistan time", "${Money.format(sales.totalPaise)}\n${sales.transactionCount} completed ${if (sales.transactionCount == 1) "sale" else "sales"}")
+                        StatusCard("Today’s net sales · Pakistan time", "${Money.format(sales.totalPaise)}\n${sales.transactionCount} completed ${if (sales.transactionCount == 1) "sale" else "sales"}")
                     }
                 }
             }
@@ -190,7 +192,9 @@ internal fun DashboardScreen(
             item { ShortcutCard("Inventory", "View quantities and adjust stock", "MANAGE", onInventory) }
             item { ShortcutCard("Checkout", "Record a cash sale and deduct stock", "CASH SALE", onCheckout) }
             item { ShortcutCard("Sales history", "Open completed transactions", "VIEW", onSales) }
-            item { ShortcutCard("Reports", "Shop performance and financial reports", "COMING SOON", onReports) }
+            item { ShortcutCard("Returns & refunds", "Saved refunds and original receipt links", "VIEW", onRefunds) }
+            item { ShortcutCard("Expenses", "Record and review shop expenses", "MANAGE", onExpenses) }
+            item { ShortcutCard("Reports", "Net sales, costs, profit and CSV export", "VIEW", onReports) }
             item { Text("Saved locally on this device · No account required", Modifier.padding(vertical = 12.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }
@@ -319,6 +323,7 @@ internal fun InventoryScreen(
                                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                     Column {
                                         Text(product.quantity.toString(), style = MaterialTheme.typography.headlineMedium, color = if (product.quantity == 0L) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+                                        if(product.quantity<=product.reorderLevel) Text("LOW STOCK · alert at ${product.reorderLevel}",color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.labelMedium)
                                         Text("units on hand", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     OutlinedButton(onClick = {
@@ -364,7 +369,7 @@ internal fun InventoryScreen(
 }
 
 @Composable
-internal fun SettingsScreen(shop: Shop, databaseStatus: String, onBack: () -> Unit, onCostCodes: () -> Unit, onReceipts: () -> Unit, onBackups: () -> Unit, onSwitch: () -> Unit) {
+internal fun SettingsScreen(shop: Shop, databaseStatus: String, onBack: () -> Unit, onCostCodes: () -> Unit, onReceipts: () -> Unit, onBackups: () -> Unit, onSecurity: () -> Unit, onSwitch: () -> Unit) {
     PosScaffold("Settings", shop.name, onBack) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
@@ -385,6 +390,7 @@ internal fun SettingsScreen(shop: Shop, databaseStatus: String, onBack: () -> Un
                     }
                 }
             }
+            item { OutlinedButton(onClick=onSecurity,modifier=Modifier.fillMaxWidth().height(52.dp)){Text("Local app PIN & lock")} }
             item { StatusCard("Offline status", "Offline ready. All product and stock records are saved on this device. No internet connection or account is required.") }
             item { StatusCard("Database status", databaseStatus) }
             item { OutlinedButton(onClick = onReceipts, modifier = Modifier.fillMaxWidth().height(54.dp)) { Text("Receipts & printing") } }

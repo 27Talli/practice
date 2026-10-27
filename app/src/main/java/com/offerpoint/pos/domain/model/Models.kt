@@ -14,6 +14,7 @@ data class Product(
     val purchaseCostPaise: Long,
     val sellingPricePaise: Long,
     val quantity: Long,
+    val reorderLevel: Long = 5,
 )
 
 data class RegisteredProduct(val id: Long, val sku: String, val name: String, val category: String, val variant: String)
@@ -26,6 +27,7 @@ data class ProductDraft(
     val purchaseCostPaise: Long,
     val sellingPricePaise: Long,
     val openingQuantity: Long = 0,
+    val reorderLevel: Long = 5,
 )
 
 class ValidationException(val field: String, override val message: String) : IllegalArgumentException(message)

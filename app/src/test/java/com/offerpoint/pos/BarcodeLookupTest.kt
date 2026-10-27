@@ -96,7 +96,7 @@ class BarcodeLookupTest {
         override suspend fun findProductForBarcode(shopId: Long, barcode: String) = active[shopId to barcode]
         override suspend fun createProduct(shopId: Long, draft: ProductDraft): Long = error("Unexpected write")
         override suspend fun updateProduct(shopId: Long, productId: Long, draft: ProductDraft) = error("Unexpected write")
-        override suspend fun associateProduct(shopId: Long, productId: Long, purchaseCostPaise: Long, sellingPricePaise: Long, openingQuantity: Long) = error("Unexpected write")
+        override suspend fun associateProduct(shopId: Long, productId: Long, purchaseCostPaise: Long, sellingPricePaise: Long, openingQuantity: Long, reorderLevel: Long) = error("Unexpected write")
     }
 
     private class FakeLabels : BarcodeLabelRepository {

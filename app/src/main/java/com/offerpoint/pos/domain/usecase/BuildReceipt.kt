@@ -10,6 +10,10 @@ object ReceiptValidation {
     fun settings(settings: ReceiptSettings): ReceiptSettings {
         require(settings.shopId > 0) { "Choose a valid shop." }
         val footer = settings.footer.trim()
+        require(settings.printerName.length<=120 && settings.printerKey.length<=160) { "The selected printer details are too long." }
+        if(settings.printerMode!=PrinterMode.ANDROID) {
+            require(settings.paper!=ReceiptPaper.A4 && settings.printerKey.isNotBlank()) { "Select a printer and 58 mm or 80 mm paper for direct thermal printing." }
+        }
         require(footer.length <= 240 && footer.none { it.isISOControl() && it != '\n' }) {
             "Use a footer of at most 240 characters without control characters."
         }

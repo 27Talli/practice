@@ -22,8 +22,7 @@ import java.io.File
 data class ReceiptState(val loading: Boolean = true, val receipt: ReceiptDocument? = null, val paper: ReceiptPaper = ReceiptPaper.A4,
                         val exporting: Boolean = false, val error: String? = null)
 
-class ReceiptViewModel(private val sales: SalesRepository, private val settings: ReceiptSettingsRepository,
-                       private val shop: Shop, private val saleId: Long, private val demo: Boolean) : ViewModel() {
+open class ReceiptDocumentViewModel(private val loader:suspend()->Pair<ReceiptDocument,ReceiptPaper>) : ViewModel() {
     private val mutableState = MutableStateFlow(ReceiptState())
     val state = mutableState.asStateFlow()
     private val exports = Channel<File>(Channel.BUFFERED)
@@ -37,10 +36,8 @@ class ReceiptViewModel(private val sales: SalesRepository, private val settings:
         mutableState.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             try {
-                val sale = sales.getSale(shop.id, saleId) ?: throw IllegalArgumentException("This saved sale was not found in the selected shop.")
-                val preferences = settings.getSettings(shop.id)
-                val receipt = BuildReceipt.create(shop, sale, preferences, demo)
-                mutableState.value = ReceiptState(loading = false, receipt = receipt, paper = preferences.paper)
+                val (receipt,paper) = loader()
+                mutableState.value = ReceiptState(loading = false, receipt = receipt, paper = paper)
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 mutableState.value = ReceiptState(loading = false, error = error.message ?: "The receipt could not be opened.")
@@ -68,6 +65,18 @@ class ReceiptViewModel(private val sales: SalesRepository, private val settings:
     }
 }
 
+class ReceiptViewModel(sales: SalesRepository, settings: ReceiptSettingsRepository, shop: Shop, saleId: Long, demo: Boolean) : ReceiptDocumentViewModel({
+    val sale=sales.getSale(shop.id,saleId) ?: error("This saved sale was not found in the selected shop.")
+    val preferences=settings.getSettings(shop.id)
+    BuildReceipt.create(shop,sale,preferences,demo) to preferences.paper
+})
+
+class RefundReceiptViewModel(refunds: com.offerpoint.pos.domain.repository.RefundRepository, settings: ReceiptSettingsRepository, shop: Shop, returnId: Long, demo: Boolean) : ReceiptDocumentViewModel({
+    val refund=refunds.get(shop.id,returnId) ?: error("This return was not found in the selected shop.")
+    val preferences=settings.getSettings(shop.id)
+    com.offerpoint.pos.domain.usecase.BuildRefundReceipt.create(shop,refund,preferences,demo) to preferences.paper
+})
+
 data class ReceiptPreferencesState(val loading: Boolean = true, val settings: ReceiptSettings? = null,
                                    val saving: Boolean = false, val error: String? = null, val notice: String? = null)
 
@@ -90,13 +99,14 @@ class ReceiptSettingsViewModel(private val repository: ReceiptSettingsRepository
     }
     fun save(paper: ReceiptPaper, footer: String) {
         if (loading || mutableState.value.saving) return
-        val value = try { ReceiptValidation.settings(ReceiptSettings(shopId, paper, footer)) }
+        val value = try { ReceiptValidation.settings((mutableState.value.settings ?: ReceiptSettings(shopId)).copy(paper=paper,footer=footer)) }
             catch (error: IllegalArgumentException) { mutableState.update { it.copy(error = error.message) }; return }
         mutableState.update { it.copy(saving = true, error = null, notice = null) }
         viewModelScope.launch {
             try {
-                repository.saveSettings(value)
-                mutableState.update { it.copy(settings = value, notice = "Receipt settings saved for this shop.") }
+                val merged = ReceiptValidation.settings(repository.getSettings(shopId).copy(paper=value.paper,footer=value.footer))
+                repository.saveSettings(merged)
+                mutableState.update { it.copy(settings = merged, notice = "Receipt settings saved for this shop.") }
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 mutableState.update { it.copy(error = error.message ?: "Receipt settings could not be saved.") }

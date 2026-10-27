@@ -14,7 +14,11 @@ import java.util.UUID
 /** Fixed topological order. No SQL identifiers ever come from an external backup. */
 object DatabaseSnapshot {
     val tables = listOf("shops", "products", "product_barcodes", "shop_products", "inventory", "sales", "sale_items", "returns", "return_items",
-        "stock_movements", "expenses", "audit_events", "app_settings", "sku_sequences", "sales_sequences", "cost_code_settings", "product_labels", "receipt_settings")
+        "stock_movements", "expenses", "audit_events", "app_settings", "sku_sequences", "sales_sequences", "return_sequences", "cost_code_settings", "product_labels", "receipt_settings")
+    private val addedIn6=mapOf("shop_products" to setOf("reorderLevel"),"sale_items" to setOf("categorySnapshot"),
+        "returns" to setOf("receiptNumber","requestId","requestFingerprint"),
+        "expenses" to setOf("requestId","requestFingerprint","isVoided","voidReason","voidedAt"),
+        "receipt_settings" to setOf("printerMode","printerKey","printerName","cutPaper"))
     private const val ROW_LIMIT = 2_000_000L
 
     data class Column(val name: String, val type: String, val primary: Int)
@@ -29,7 +33,7 @@ object DatabaseSnapshot {
 
     fun write(db: SupportSQLiteDatabase, file: File, id: String, createdAt: Long, demo: Boolean) {
         JsonWriter(OutputStreamWriter(LimitedOutput(file.outputStream()), Charsets.UTF_8)).use { w ->
-            w.beginObject().name("format").value(1).name("databaseVersion").value(5).name("backupId").value(id)
+            w.beginObject().name("format").value(1).name("databaseVersion").value(6).name("backupId").value(id)
                 .name("createdAt").value(createdAt).name("variant").value(if (demo) "DEMO" else "LIVE").name("tables").beginArray()
             var total = 0L
             for (table in tables) {
@@ -68,15 +72,16 @@ object DatabaseSnapshot {
             fun name(expected: String) { require(r.nextName() == expected) { "Unsupported backup structure." } }
             fun integer(): Long { require(r.peek() == JsonToken.NUMBER); return r.nextString().toLongOrNull() ?: error("Invalid integer in backup.") }
             r.beginObject(); name("format"); require(integer() == 1L) { "Unsupported backup format version." }
-            name("databaseVersion"); require(integer() == 5L) { "Unsupported backup database version. Use a compatible app or the documented rescue tool." }
+            name("databaseVersion"); val version=integer();require(version in 5L..6L) { "Unsupported backup database version. Use a compatible app or the documented rescue tool." }
             name("backupId"); val id = r.nextString(); require(id.length == 36 && UUID.fromString(id).toString() == id) { "Invalid backup identity." }
             name("createdAt"); val timestamp = integer(); require(timestamp >= 0)
             name("variant"); require(r.nextString() == if (demo) "DEMO" else "LIVE") { "Live and Demo backups cannot be mixed." }
             name("tables"); r.beginArray()
             val counts = linkedMapOf<String, Long>(); var total = 0L
-            for (table in tables) {
+            val incomingTables=if(version==5L)tables.filter{it!="return_sequences"} else tables
+            for (table in incomingTables) {
                 r.beginObject(); name("name"); require(r.nextString() == table) { "Missing or unexpected backup table." }
-                name("columns"); r.beginArray(); val cols = columns(db, table)
+                name("columns"); r.beginArray(); val cols = columns(db, table).filter { version!=5L || it.name !in addedIn6[table].orEmpty() }
                 for (col in cols) require(r.nextString() == col.name) { "Unsupported backup columns." }
                 r.endArray(); name("rows"); r.beginArray()
                 val placeholders = cols.joinToString(",") { "?" }
@@ -114,6 +119,7 @@ object DatabaseSnapshot {
                 db.query("SELECT COUNT(*) FROM `$table`").use { c -> c.moveToFirst(); require(c.getLong(0) == 0L || table in sequenceNames) { "Missing backup ID counter." } }
             }
             val shops = db.query("SELECT name FROM shops ORDER BY id").use { c -> buildList { while (c.moveToNext()) add(c.getString(0)) } }
+            for(table in tables)if(table !in counts)counts[table]=0
             return BackupPreview(token, id, timestamp, demo, counts, shops)
         }
     }
@@ -136,6 +142,7 @@ object DatabaseSnapshot {
         // Keep higher already-issued IDs/references, even when restoring older business records.
         val skuCounters=target.query("SELECT prefix,nextValue FROM sku_sequences").use { c -> buildMap<String,Long> { while(c.moveToNext())put(c.getString(0),c.getLong(1)) } }
         val saleCounters=target.query("SELECT shopId,nextValue FROM sales_sequences").use { c -> buildMap<Long,Long> { while(c.moveToNext())put(c.getLong(0),c.getLong(1)) } }
+        val returnCounters=target.query("SELECT shopId,nextValue FROM return_sequences").use { c -> buildMap<Long,Long> { while(c.moveToNext())put(c.getLong(0),c.getLong(1)) } }
         val rowCounters=target.query("SELECT name,seq FROM sqlite_sequence").use { c -> buildMap<String,Long> { while(c.moveToNext())put(c.getString(0),c.getLong(1)) } }
         for (table in tables.asReversed()) target.execSQL("DELETE FROM `$table`")
         for (table in tables) {
@@ -157,6 +164,10 @@ object DatabaseSnapshot {
         for((shopId,value) in saleCounters) {
             target.execSQL("INSERT OR IGNORE INTO sales_sequences(shopId,nextValue) VALUES (?,?)",arrayOf(shopId,value))
             target.execSQL("UPDATE sales_sequences SET nextValue=MAX(nextValue,?) WHERE shopId=?",arrayOf(value,shopId))
+        }
+        for((shopId,value) in returnCounters) {
+            target.execSQL("INSERT OR IGNORE INTO return_sequences(shopId,nextValue) VALUES (?,?)",arrayOf(shopId,value))
+            target.execSQL("UPDATE return_sequences SET nextValue=MAX(nextValue,?) WHERE shopId=?",arrayOf(value,shopId))
         }
         for((table,value) in rowCounters) {
             val restored=target.query("SELECT seq FROM sqlite_sequence WHERE name=?",arrayOf(table)).use { c -> if(c.moveToFirst()) c.getLong(0) else 0 }

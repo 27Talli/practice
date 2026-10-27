@@ -56,6 +56,8 @@ class RoomSalesRepository(
             val shop = dao.findShop(stable.shopId)
                 ?: throw CheckoutException("The selected shop does not exist.")
             val validated = stable.lines.map { line -> validateLine(stable.shopId, line) }
+            try { validated.fold(0L) { sum, entry -> Math.addExact(sum,Math.multiplyExact(entry.association.purchaseCostPaise,entry.line.quantity)) } }
+            catch (_: ArithmeticException) { throw CheckoutException("The recorded purchase cost exceeds the supported money range. Review the cost and quantity before checkout.") }
             val timestamp = now()
             val receipt = nextReceipt(stable.shopId, shop.code)
             val saleId = dao.insertSale(SaleEntity(
@@ -91,6 +93,7 @@ class RoomSalesRepository(
                     discountPaise = line.lineDiscountPaise,
                     lineTotalPaise = Math.subtractExact(Math.multiplyExact(line.quantity, line.unitPricePaise), line.lineDiscountPaise),
                     createdAt = timestamp,
+                    categorySnapshot = entry.product.category,
                 ))
                 val quantityAfter = Math.subtractExact(entry.inventory.quantity, line.quantity)
                 if (dao.updateInventoryQty(stable.shopId, line.productId, quantityAfter, timestamp) != 1) {
@@ -202,7 +205,7 @@ class RoomSalesRepository(
         paymentMethod = sale.paymentMethod,
         items = dao.getSaleItems(sale.shopId, sale.id).map { item ->
             SoldItem(item.productId, item.skuSnapshot, item.nameSnapshot, item.variantSnapshot,
-                item.quantity, item.unitPricePaise, item.unitCostPaise, item.discountPaise, item.lineTotalPaise)
+                item.quantity, item.unitPricePaise, item.unitCostPaise, item.discountPaise, item.lineTotalPaise, item.id, item.categorySnapshot)
         },
     )
 

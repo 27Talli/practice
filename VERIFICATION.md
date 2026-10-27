@@ -1,3 +1,9 @@
+# Current candidate: 1.0.0-rc1
+
+Verification is in progress. The changes include schema 6, partial returns and controlled restocking, refund receipts, audited expenses/voids, financial reports/CSV, low-stock alerts, device-local PIN lock and standard direct thermal printing. Builds and native tests have not yet run for this candidate. Earlier results below apply only to the stated historical source.
+
+Local supplemental schema/SQLite checks and host rescue-tool tests pass; Android SDK/Gradle are unavailable in this workspace. GitHub Actions will compile, lint and run both JVM variants plus the Android emulator suite.
+
 # Delivery verification
 
 ## Verified Milestone 5 (0.5.0)

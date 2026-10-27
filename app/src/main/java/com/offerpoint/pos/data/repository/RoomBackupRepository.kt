@@ -12,6 +12,8 @@ import com.offerpoint.pos.data.local.entity.AuditEventEntity
 import com.offerpoint.pos.domain.model.*
 import com.offerpoint.pos.domain.repository.BackupRepository
 import com.offerpoint.pos.domain.usecase.BuildReceipt
+import com.offerpoint.pos.domain.usecase.BuildRefundReceipt
+import com.offerpoint.pos.domain.usecase.RefundMath
 import com.offerpoint.pos.domain.usecase.CostCode
 import com.offerpoint.pos.domain.usecase.ReceiptValidation
 import kotlinx.coroutines.Dispatchers
@@ -141,14 +143,16 @@ class RoomBackupRepository(context: Context, private val database: PosDatabase, 
         require(scalar("SELECT COUNT(*) FROM shops") == 2L && scalar("SELECT COUNT(*) FROM shops WHERE (id=1 AND code='OP') OR (id=2 AND code='FF')") == 2L) { "Backup must contain the two expected shops." }
         val settings = requireNotNull(room.posDao().getSettings()) { "Backup shop selection is missing." }
         require(scalar("SELECT COUNT(*) FROM app_settings") == 1L && settings.demoSeeded == demo) { "Live and Demo records cannot be mixed." }
-        for ((table, where) in listOf("shop_products" to "purchaseCostPaise < 0 OR sellingPricePaise < 0", "inventory" to "quantity < 0", "expenses" to "amountPaise < 0",
+        for ((table, where) in listOf("shop_products" to "purchaseCostPaise < 0 OR sellingPricePaise < 0 OR reorderLevel < 0", "inventory" to "quantity < 0", "expenses" to "amountPaise < 0 OR isVoided NOT IN (0,1) OR (isVoided=1 AND (voidReason IS NULL OR length(trim(voidReason))=0 OR voidedAt IS NULL)) OR (isVoided=0 AND (voidReason IS NOT NULL OR voidedAt IS NOT NULL))",
             "sale_items" to "unitCostPaise < 0", "products" to "isActive NOT IN (0,1)", "app_settings" to "demoSeeded NOT IN (0,1)",
             "returns" to "refundPaise < 0", "return_items" to "quantity <= 0 OR restockQuantity < 0 OR restockQuantity > quantity OR unitRefundPaise < 0 OR refundPaise < 0",
-            "sku_sequences" to "nextValue <= 0", "sales_sequences" to "nextValue <= 0", "sales" to "status != 'COMPLETED' OR completedAt IS NULL OR paymentMethod != 'CASH'")) {
+            "sku_sequences" to "nextValue <= 0", "sales_sequences" to "nextValue <= 0", "return_sequences" to "nextValue <= 0", "sales" to "status != 'COMPLETED' OR completedAt IS NULL OR paymentMethod != 'CASH'")) {
             require(scalar("SELECT COUNT(*) FROM `$table` WHERE $where") == 0L) { "Invalid business values in $table." }
         }
         require(scalar("SELECT COUNT(*) FROM shop_products p LEFT JOIN inventory i ON i.shopId=p.shopId AND i.productId=p.productId WHERE i.productId IS NULL") == 0L) { "Inventory balance missing." }
         require(scalar("SELECT COUNT(*) FROM sale_items i WHERE (SELECT COUNT(*) FROM stock_movements m WHERE m.saleItemId=i.id AND m.type='SALE' AND m.delta=-i.quantity) != 1") == 0L) { "Sale stock history is incomplete." }
+        require(scalar("SELECT COUNT(*) FROM return_items i WHERE (i.restockQuantity>0 AND (SELECT COUNT(*) FROM stock_movements m WHERE m.returnItemId=i.id AND m.type='RETURN' AND m.delta=i.restockQuantity)!=1) OR (i.restockQuantity=0 AND EXISTS(SELECT 1 FROM stock_movements m WHERE m.returnItemId=i.id))") == 0L) { "Return stock history is incomplete." }
+        require(scalar("SELECT COUNT(*) FROM stock_movements WHERE (type='SALE' AND saleItemId IS NULL) OR (type!='SALE' AND saleItemId IS NOT NULL) OR (type='RETURN' AND returnItemId IS NULL) OR (type!='RETURN' AND returnItemId IS NOT NULL)") == 0L) { "Invalid stock movement links." }
         sql.query("SELECT shopId,productId,quantity FROM inventory").use { inventory -> while(inventory.moveToNext()) {
             var quantity = 0L
             sql.query("SELECT delta,quantityAfter FROM stock_movements WHERE shopId=? AND productId=? ORDER BY id", arrayOf(inventory.getLong(0),inventory.getLong(1))).use { ledger -> while(ledger.moveToNext()) {
@@ -161,11 +165,35 @@ class RoomBackupRepository(context: Context, private val database: PosDatabase, 
             val id = cursor.getLong(0); val shopId = cursor.getLong(1)
             require(scalar("SELECT COUNT(*) FROM sale_items WHERE saleId=$id") in 1L..10_000L) { "Invalid sale item count." }
             val shop = requireNotNull(room.posDao().findShop(shopId))
-            BuildReceipt.create(Shop(shop.id,shop.code,shop.name,shop.address),requireNotNull(sales.getSale(shopId,id)),ReceiptSettings(shopId),demo)
+            val savedSale=requireNotNull(sales.getSale(shopId,id))
+            BuildReceipt.create(Shop(shop.id,shop.code,shop.name,shop.address),savedSale,ReceiptSettings(shopId),demo)
+            val nets=RefundMath.netLines(savedSale.items.map{it.lineTotalPaise},savedSale.orderDiscountPaise)
+            savedSale.items.forEachIndexed { index,item ->
+                var previous=0L;var refunded=0L
+                sql.query("SELECT i.quantity,i.refundPaise,r.requestId FROM return_items i JOIN returns r ON r.id=i.returnId WHERE i.saleItemId=? ORDER BY i.id",arrayOf(item.saleItemId)).use { returns -> while(returns.moveToNext()) {
+                    val quantity=returns.getLong(0);val amount=returns.getLong(1)
+                    val expected=RefundMath.amount(nets[index],item.quantity,previous,quantity)
+                    if(!returns.isNull(2)) require(amount==expected) { "Saved refund allocation is inconsistent." }
+                    previous=Math.addExact(previous,quantity);refunded=Math.addExact(refunded,amount)
+                    require(refunded<=nets[index]) { "Refunds exceed the original amount paid." }
+                } }
+            }
+        } }
+        val refundRepository=RoomRefundRepository(room)
+        sql.query("SELECT id,shopId,requestId,requestFingerprint FROM returns").use { c -> while(c.moveToNext()) {
+            val refund=requireNotNull(refundRepository.get(c.getLong(1),c.getLong(0)));val shop=requireNotNull(room.posDao().findShop(refund.shopId))
+            BuildRefundReceipt.create(Shop(shop.id,shop.code,shop.name,shop.address),refund,ReceiptSettings(shop.id),demo)
+            if(!c.isNull(2)) {
+                val request=RefundMath.validate(RefundRequest(c.getString(2),refund.shopId,refund.saleId,refund.items.map{RefundLine(it.saleItemId,it.quantity,it.restockQuantity)},refund.reason,refund.refundPaise))
+                require(RefundMath.fingerprint(request)==c.getString(3)) { "Refund retry history is inconsistent." }
+            }
         } }
         sql.query("SELECT alphabet FROM cost_code_settings").use { c -> while(c.moveToNext()) CostCode.validateAlphabet(c.getString(0)) }
         sql.query("SELECT costCode,alphabetSnapshot,purchaseCostPaise FROM product_labels").use { c -> while(c.moveToNext()) require(CostCode.decode(c.getString(0),c.getString(1)) == c.getLong(2)) { "Invalid cost label snapshot." } }
-        sql.query("SELECT shopId,paper,footer FROM receipt_settings").use { c -> while(c.moveToNext()) ReceiptValidation.settings(ReceiptSettings(c.getLong(0),ReceiptPaper.valueOf(c.getString(1)),c.getString(2))) }
+        sql.query("SELECT shopId,paper,footer,printerMode,printerKey,printerName,cutPaper FROM receipt_settings").use { c -> while(c.moveToNext()) {
+            require(c.getInt(6) in 0..1)
+            ReceiptValidation.settings(ReceiptSettings(c.getLong(0),ReceiptPaper.valueOf(c.getString(1)),c.getString(2),PrinterMode.valueOf(c.getString(3)),c.getString(4),c.getString(5),c.getInt(6)==1))
+        } }
     }
 
     private fun sha256(file: File): String { val digest=MessageDigest.getInstance("SHA-256"); file.inputStream().use { input -> val bytes=ByteArray(65_536); while(true) { val n=input.read(bytes); if(n<0)break; digest.update(bytes,0,n) } }; return hex(digest.digest()) }

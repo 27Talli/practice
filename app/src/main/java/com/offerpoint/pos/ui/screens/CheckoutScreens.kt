@@ -305,7 +305,7 @@ internal fun SalesHistoryScreen(shop: Shop, state: SalesHistoryState, onRetry: (
 }
 
 @Composable
-internal fun SaleDetailsScreen(shop: Shop, state: SaleDetailsState, justCompleted: Boolean, onRetry: () -> Unit, onReceipt: () -> Unit, onNewSale: () -> Unit, onBack: () -> Unit) {
+internal fun SaleDetailsScreen(shop: Shop, state: SaleDetailsState, justCompleted: Boolean, onRetry: () -> Unit, onReceipt: () -> Unit, onReturn: () -> Unit, onNewSale: () -> Unit, onBack: () -> Unit) {
     PosScaffold(if (justCompleted) "Sale saved" else "Sale details", shop.name, onBack) { padding ->
         when {
             state.loading -> Column(Modifier.fillMaxSize().padding(padding)) { LoadingContent("Opening the saved sale…") }
@@ -317,6 +317,7 @@ internal fun SaleDetailsScreen(shop: Shop, state: SaleDetailsState, justComplete
                         if (justCompleted) Text("The sale and stock deductions were saved together.", Modifier.padding(top = 10.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     item { OutlinedButton(onClick = onReceipt, modifier = Modifier.fillMaxWidth().height(54.dp)) { Text("View / print receipt") } }
+                    item { OutlinedButton(onClick=onReturn,modifier=Modifier.fillMaxWidth().height(54.dp)){Text("Return items / refund")} }
                     items(sale.items) { item ->
                         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp)) {
                             Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -340,7 +341,7 @@ internal fun SaleDetailsScreen(shop: Shop, state: SaleDetailsState, justComplete
                             }
                         }
                     }
-                    item { Text("Receipts are available above. Returns are coming soon.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    item { Text("Receipts and returns use this saved transaction’s original amounts.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     item { Button(onClick = onNewSale, modifier = Modifier.fillMaxWidth().height(54.dp)) { Text("Start a new sale") } }
                 }
             }

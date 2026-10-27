@@ -4,7 +4,7 @@
 
 Open **Settings → Backups & restore → Create encrypted backup**. Choose a new `.opbackup` document in Downloads, a USB drive or another trusted location; then set and repeat a passphrase of at least 10 characters. The app encrypts the snapshot before writing it to the selected provider and reads the saved file back to verify its SHA-256. A success message means that verification passed.
 
-The backup includes BOTH shops: products, barcode aliases, prices, balances, stock ledger, sales/item snapshots, idempotency keys, reference counters, returns/expenses foundation tables, audit history, shop selection, private cost-code keys and receipt preferences. It excludes unpaid carts, camera images, regenerable PDF cache files and signing keys. Keep an off-device copy and a separate record of the passphrase. There is no password recovery service.
+The backup includes BOTH shops: products, barcode aliases, prices, balances, stock ledger, sales/item snapshots, idempotency keys, reference counters, refunds and their original-sale links, expenses and voids, low-stock levels, audit history, shop selection, private cost-code keys and receipt preferences. It excludes unpaid carts, camera images, regenerable PDF cache files signing keys and device-local PIN credentials. Keep an off-device copy and a separate record of the passphrase. There is no password recovery service.
 
 The Android file picker may show other installed providers. The app does not automatically upload anything or request Internet/storage permissions; choose a location appropriate for your records. A file held only inside the app's private storage is not a safe uninstall backup.
 
@@ -14,14 +14,14 @@ The Android file picker may show other installed providers. The app does not aut
 2. Review the date, Live/Demo marker, shop names and record counts. Authentication, schema/column checks, Room foreign keys/uniqueness, stock ledger, sale arithmetic and cost-label consistency are validated in a private staging database first. Live and Demo data cannot cross between variants.
 3. Restore replaces **both shops**, rather than merging them. Type `RESTORE` and choose **Save recovery backup & restore**.
 4. Choose a NEW recovery document, separate from the source file. It uses the inspected backup's passphrase. Current data is encrypted, saved and read back successfully before replacement starts.
-5. The replacement and its audit event commit in one Room transaction. Original record IDs are preserved; future SKU, receipt and row counters retain any higher values already used on this device, preventing reissue after an older backup is restored. Failure rolls back all business tables. If another write occurs while the external recovery copy is being saved, replacement is rejected so that the recovery file cannot omit a newer transaction.
+5. The replacement and its audit event commit in one Room transaction. Original record IDs are preserved; future SKU, sale/refund receipt and row counters retain any higher values already used on this device, preventing reissue after an older backup is restored. Failure rolls back all business tables. If another write occurs while the external recovery copy is being saved, replacement is rejected so that the recovery file cannot omit a newer transaction.
 6. After commit the app opens a fresh workspace. A persistent dataset generation namespaces navigation/saved state, preventing a cart from the replaced database being reused, including after normal process restoration.
 
 Recovery files can be inspected/restored by the same flow. Reinspect after a process restart; passphrases and staged-restore authorization are not saved in Android state or Room. A cancelled picker or failed validation does not replace shop records. Do not operate checkout during maintenance.
 
-Backups use format 1/schema 5. Unknown or newer formats are rejected; future schema changes must add explicit format conversion. Limits are 128 MiB plaintext, two million rows, 100,000 characters per text field and 10,000 lines per sale. The codec streams bounded 64 KiB chunks. AES-256-GCM authenticates each chunk's position/length and an empty final chunk; the complete header is authenticated. PBKDF2-HMAC-SHA256 uses 600,000 iterations, a random 16-byte salt and a private passphrase; every file has fresh nonce material. No APK-wide secret is used.
+New backups use format 1/schema 6. This app also accepts schema-5 backups and explicitly fills the new schema-6 business defaults; device credentials are never imported. Unknown or newer formats are rejected; future schema changes must add explicit format conversion. Limits are 128 MiB plaintext, two million rows, 100,000 characters per text field and 10,000 lines per sale. The codec streams bounded 64 KiB chunks. AES-256-GCM authenticates each chunk's position/length and an empty final chunk; the complete header is authenticated. PBKDF2-HMAC-SHA256 uses 600,000 iterations, a random 16-byte salt and a private passphrase; every file has fresh nonce material. No APK-wide secret is used.
 
-This flow requires an openable, consistent current Room database to create a valid recovery copy. Physical device loss/corruption can be handled by restoring an existing encrypted backup into a clean installation on another device. Automatic repair of a physically corrupt SQLite file is outside this milestone.
+This flow requires an openable, consistent current Room database to create a valid recovery copy. Physical device loss/corruption can be handled by restoring an existing encrypted backup into a clean installation on another device. Automatic repair of a physically corrupt SQLite file is outside this release.
 
 ## Why older debug APKs may not update
 
@@ -29,9 +29,9 @@ Android requires the same application ID and signing key for an in-place update.
 
 **Do not uninstall, clear storage or attempt a destructive migration to resolve a signing mismatch.** Preserve the existing installation while recovering its original key or making independently verified backups. Signed releases cannot be enabled until the owner provides a retained signing key through the mechanism below.
 
-## Rescue versions 3/4 of the earlier debuggable app
+## Rescue debuggable database versions 3–6
 
-The rescue utility is for the earlier DEBUG APKs with database version 3 or 4 (and current version 5). It is not an account/backend service. Run it on your own computer with Python 3.10+, JDK 17+ and Android Platform Tools (`adb`). Enable USB debugging and authorize only your own computer. Keep the phone's app closed while copying.
+The rescue utility is for the earlier DEBUG APKs with database version 3, 4, 5 or 6. It is not an account/backend service. Run it on your own computer with Python 3.10+, JDK 17+ and Android Platform Tools (`adb`). Enable USB debugging and authorize only your own computer. Keep the phone's app closed while copying.
 
 From this source checkout:
 
@@ -40,7 +40,7 @@ adb devices
 python3 scripts/rescue_debug_data.py --output /private/off-device/offer-point-rescue.opbackup --acknowledge-stop
 ```
 
-Add `--demo` for the Demo app or `--serial DEVICE_SERIAL` when multiple devices are attached. Enter a new passphrase at the hidden prompt. The script force-stops the app, copies its database and WAL using Android's `run-as`, creates a coherent local SQLite snapshot, checks integrity and converts only the known additive version-5 fields. It encrypts locally with JDK cryptography, decrypts the result to verify its bytes, and creates a new output file without overwriting an earlier backup. It never runs uninstall, clear, or database writes on the phone. Temporary unencrypted copies stay in a private temporary directory and are deleted on normal exit. Secure your computer and its disk; interrupted host processes may leave temporary files.
+Add `--demo` for the Demo app or `--serial DEVICE_SERIAL` when multiple devices are attached. Enter a new passphrase at the hidden prompt. The script force-stops the app, copies its database and WAL using Android's `run-as`, creates a coherent local SQLite snapshot, checks integrity and converts only known additive historical fields. Version-6 rescue preserves all 19 business tables and excludes this device’s PIN; it requires the generated schema-6 JSON from a completed build. It encrypts locally with JDK cryptography, decrypts the result to verify its bytes, and creates a new output file without overwriting an earlier backup. It never runs uninstall, clear, or database writes on the phone. Temporary unencrypted copies stay in a private temporary directory and are deleted on normal exit. Secure your computer and its disk; interrupted host processes may leave temporary files.
 
 `run-as` fails for a non-debuggable release; such an installation must use its own in-app export or its original update key. The physical-phone ADB/USB flow requires acceptance on your device. Host conversion/encryption and native Android restore interoperability are automated against synthetic historical-schema fixtures; the tool is never run against real shop data in CI.
 
@@ -88,4 +88,4 @@ Release assembly is refused without a retained key and credentials. Once an inst
 
 ## Verification for this delivery
 
-Run 40494409192 passed both APK builds, 101 JVM tests per variant, 94 native Android tests, lint/signatures, host rescue conversion/encryption and an isolated test-key release build. The test-key APK/key were deleted and were not published. Owner signing secrets were absent, so no retained-key production release was produced. An additional host-only connection-lifetime cleanup was verified with the host self-test locally; it changes no APK code or backup format. Physical USB rescue, real document providers and production-key deployment still require acceptance on the owner's hardware/account.
+See [VERIFICATION.md](../VERIFICATION.md) for the exact verified source, run, test counts and artifacts. The previous 0.5.0 baseline passed run 40494409192 with 101 JVM tests per variant and 94 Android tests. The 1.0.0-rc1 candidate adds schema-6 migrations, returns, expenses, reports, local PIN security and standard thermal printing; its verification is pending until a completed run is recorded there. Physical USB rescue, real document providers, printer output and owner-key deployment require acceptance on the shop hardware/account.

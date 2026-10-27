@@ -70,7 +70,7 @@ object ReceiptPaginator {
         if (receipt.demo) header("DEMO - NOT A REAL SALE", normalSize, true)
         header(receipt.shopName, normalSize + 3f, true)
         header(receipt.shopAddress, normalSize, false)
-        header("SALE RECEIPT", normalSize, true)
+        header(receipt.title, normalSize, true)
         header("Receipt: ${receipt.receiptNumber}", normalSize, false)
         header(receipt.soldAt, normalSize, false)
         val contentTop = headerY + 10f
@@ -79,7 +79,7 @@ object ReceiptPaginator {
         val pages = mutableListOf<ReceiptPage>()
         var current = header.toMutableList()
         var y = contentTop
-        fun newPage() { pages.add(ReceiptPage(current.toList())); current = header.toMutableList(); y = contentTop }
+        fun newPage() { require(pages.size<199){"This receipt exceeds 200 pages. Review the saved record before exporting."};pages.add(ReceiptPage(current.toList())); current = header.toMutableList(); y = contentTop }
         fun draw(text: String, size: Float, bold: Boolean, alignRight: Boolean = false) {
             setStyle(size, bold)
             for (line in wrap(text)) {

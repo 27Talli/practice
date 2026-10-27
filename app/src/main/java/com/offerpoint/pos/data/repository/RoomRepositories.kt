@@ -117,6 +117,7 @@ class RoomProductRepository(
                 dao.insertBarcode(ProductBarcodeEntity(productId = productId, value = it, kind = "MANUFACTURER", createdAt = timestamp))
             }
             createAssociation(shopId, productId, valid.purchaseCostPaise, valid.sellingPricePaise, valid.openingQuantity, timestamp)
+            dao.setReorderLevel(shopId,productId,valid.reorderLevel,timestamp)
             dao.insertAudit(AuditEventEntity(entityType = "PRODUCT", entityId = productId, shopId = shopId,
                 action = "CREATE", beforeValue = null, afterValue = snapshot(sku, valid), createdAt = timestamp))
             productId
@@ -135,6 +136,7 @@ class RoomProductRepository(
             val timestamp = now()
             dao.updateProduct(existing.copy(name = valid.name, category = valid.category, variant = valid.variant, updatedAt = timestamp))
             dao.updateShopProductPrices(shopId, productId, valid.purchaseCostPaise, valid.sellingPricePaise, timestamp)
+            dao.setReorderLevel(shopId,productId,valid.reorderLevel,timestamp)
             val oldBarcode = dao.barcodeForProduct(productId)?.value
             if (oldBarcode != valid.manufacturerBarcode) {
                 dao.deleteManufacturerBarcodes(productId)
@@ -143,7 +145,7 @@ class RoomProductRepository(
                 }
             }
             val before = ProductDraft(previous.name, previous.category, previous.variant, oldBarcode,
-                previous.purchaseCostPaise, previous.sellingPricePaise)
+                previous.purchaseCostPaise, previous.sellingPricePaise, reorderLevel=previous.reorderLevel)
             // Opening stock is a creation field. Editing metadata never changes stock.
             dao.insertAudit(AuditEventEntity(entityType = "PRODUCT", entityId = productId, shopId = shopId,
                 action = "EDIT_SHARED_METADATA_AND_SHOP_PRICES", beforeValue = snapshot(existing.sku, before),
@@ -151,15 +153,16 @@ class RoomProductRepository(
         }
     }
 
-    override suspend fun associateProduct(shopId: Long, productId: Long, purchaseCostPaise: Long, sellingPricePaise: Long, openingQuantity: Long) {
+    override suspend fun associateProduct(shopId: Long, productId: Long, purchaseCostPaise: Long, sellingPricePaise: Long, openingQuantity: Long, reorderLevel: Long) {
         database.withWriteTransaction {
             if (dao.findShop(shopId) == null) throw ValidationException("shop", "This shop does not exist.")
             val product = dao.findProduct(productId) ?: throw ValidationException("product", "This product does not exist.")
             val valid = ProductValidation.validate(ProductDraft(product.name, product.category, product.variant,
-                purchaseCostPaise = purchaseCostPaise, sellingPricePaise = sellingPricePaise, openingQuantity = openingQuantity))
+                purchaseCostPaise = purchaseCostPaise, sellingPricePaise = sellingPricePaise, openingQuantity = openingQuantity, reorderLevel = reorderLevel))
             if (dao.getAssociation(shopId, productId) != null) throw ValidationException("product", "This product is already associated with this shop.")
             val timestamp = now()
             createAssociation(shopId, productId, valid.purchaseCostPaise, valid.sellingPricePaise, valid.openingQuantity, timestamp)
+            dao.setReorderLevel(shopId,productId,valid.reorderLevel,timestamp)
             dao.insertAudit(AuditEventEntity(entityType = "SHOP_PRODUCT", entityId = productId, shopId = shopId,
                 action = "ASSOCIATE", beforeValue = null, afterValue = snapshot(product.sku, valid), createdAt = timestamp))
         }
@@ -217,13 +220,13 @@ class RoomInventoryRepository(
 private fun ShopEntity.toDomain() = Shop(id, code, name, address)
 
 private fun ProductRow.toDomain() = Product(id, shopId, sku, name, category, variant,
-    manufacturerBarcode, purchaseCostPaise, sellingPricePaise, quantity)
+    manufacturerBarcode, purchaseCostPaise, sellingPricePaise, quantity, reorderLevel)
 
 /** Human-readable audit snapshots retain exact integer paise and escape user-entered text. */
 private fun snapshot(sku: String, draft: ProductDraft): String =
     "{\"sku\":${sku.jsonString()},\"name\":${draft.name.jsonString()},\"category\":${draft.category.jsonString()}," +
         "\"variant\":${draft.variant.jsonString()},\"manufacturerBarcode\":${draft.manufacturerBarcode?.jsonString() ?: "null"}," +
-        "\"purchaseCostPaise\":${draft.purchaseCostPaise},\"sellingPricePaise\":${draft.sellingPricePaise}}"
+        "\"purchaseCostPaise\":${draft.purchaseCostPaise},\"sellingPricePaise\":${draft.sellingPricePaise},\"reorderLevel\":${draft.reorderLevel}}"
 
 private fun String.jsonString(): String = buildString {
     append('"')

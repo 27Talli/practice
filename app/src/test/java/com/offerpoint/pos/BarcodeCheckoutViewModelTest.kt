@@ -193,7 +193,7 @@ class BarcodeCheckoutViewModelTest {
         override suspend fun findProductForBarcode(shopId: Long, barcode: String): Product? = registry[barcode]?.takeIf { it.shopId == shopId }
         override suspend fun createProduct(shopId: Long, draft: ProductDraft): Long = error("Scanner must not create products")
         override suspend fun updateProduct(shopId: Long, productId: Long, draft: ProductDraft) = error("Not used")
-        override suspend fun associateProduct(shopId: Long, productId: Long, purchaseCostPaise: Long, sellingPricePaise: Long, openingQuantity: Long) = error("Scanner must not associate shops")
+        override suspend fun associateProduct(shopId: Long, productId: Long, purchaseCostPaise: Long, sellingPricePaise: Long, openingQuantity: Long, reorderLevel: Long) = error("Scanner must not associate shops")
     }
 
     private class FakeLabels : BarcodeLabelRepository {

@@ -126,7 +126,7 @@ class PosViewModelTest {
             return id
         }
         override suspend fun updateProduct(shopId: Long, productId: Long, draft: ProductDraft) { updates += 1 }
-        override suspend fun associateProduct(shopId: Long, productId: Long, purchaseCostPaise: Long, sellingPricePaise: Long, openingQuantity: Long) {
+        override suspend fun associateProduct(shopId: Long, productId: Long, purchaseCostPaise: Long, sellingPricePaise: Long, openingQuantity: Long, reorderLevel: Long) {
             associations += listOf(shopId, productId, purchaseCostPaise, sellingPricePaise, openingQuantity)
         }
     }

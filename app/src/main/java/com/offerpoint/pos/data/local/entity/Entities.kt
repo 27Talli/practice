@@ -59,6 +59,7 @@ data class ShopProductEntity(
     val isActive: Boolean = true,
     val createdAt: Long,
     val updatedAt: Long,
+    @ColumnInfo(defaultValue = "5") val reorderLevel: Long = 5,
 )
 
 @Entity(
@@ -119,12 +120,13 @@ data class SaleItemEntity(
     val discountPaise: Long,
     val lineTotalPaise: Long,
     val createdAt: Long,
+    @ColumnInfo(defaultValue = "''") val categorySnapshot: String = "",
 )
 
 @Entity(
     tableName = "returns",
     foreignKeys = [ForeignKey(entity = SaleEntity::class, parentColumns = ["id", "shopId"], childColumns = ["saleId", "shopId"], onDelete = ForeignKey.RESTRICT)],
-    indices = [Index(value = ["saleId", "shopId"]), Index(value = ["id", "saleId", "shopId"], unique = true), Index(value = ["shopId", "createdAt"])],
+    indices = [Index(value = ["saleId", "shopId"]), Index(value = ["id", "saleId", "shopId"], unique = true), Index(value = ["shopId", "createdAt"]), Index(value = ["requestId"], unique = true), Index(value = ["shopId", "receiptNumber"], unique = true)],
 )
 data class ReturnEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -133,6 +135,9 @@ data class ReturnEntity(
     val reason: String,
     val refundPaise: Long,
     val createdAt: Long,
+    @ColumnInfo(defaultValue = "NULL") val receiptNumber: String? = null,
+    @ColumnInfo(defaultValue = "NULL") val requestId: String? = null,
+    @ColumnInfo(defaultValue = "NULL") val requestFingerprint: String? = null,
 )
 
 @Entity(
@@ -183,7 +188,7 @@ data class StockMovementEntity(
 @Entity(
     tableName = "expenses",
     foreignKeys = [ForeignKey(entity = ShopEntity::class, parentColumns = ["id"], childColumns = ["shopId"], onDelete = ForeignKey.RESTRICT)],
-    indices = [Index(value = ["shopId", "incurredAt"])],
+    indices = [Index(value = ["shopId", "incurredAt"]), Index(value = ["requestId"], unique = true)],
 )
 data class ExpenseEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -194,6 +199,11 @@ data class ExpenseEntity(
     val incurredAt: Long,
     val createdAt: Long,
     val updatedAt: Long,
+    @ColumnInfo(defaultValue = "NULL") val requestId: String? = null,
+    @ColumnInfo(defaultValue = "NULL") val requestFingerprint: String? = null,
+    @ColumnInfo(defaultValue = "0") val isVoided: Boolean = false,
+    @ColumnInfo(defaultValue = "NULL") val voidReason: String? = null,
+    @ColumnInfo(defaultValue = "NULL") val voidedAt: Long? = null,
 )
 
 /** Structured textual snapshots retain the before/after values of important catalog edits. */
@@ -269,4 +279,16 @@ data class ProductLabelEntity(
     tableName = "receipt_settings",
     foreignKeys = [ForeignKey(entity = ShopEntity::class, parentColumns = ["id"], childColumns = ["shopId"], onDelete = ForeignKey.RESTRICT)],
 )
-data class ReceiptSettingsEntity(@PrimaryKey val shopId: Long, val paper: String, val footer: String, val updatedAt: Long)
+data class ReceiptSettingsEntity(@PrimaryKey val shopId: Long, val paper: String, val footer: String, val updatedAt: Long,
+    @ColumnInfo(defaultValue = "'ANDROID'") val printerMode: String = "ANDROID",
+    @ColumnInfo(defaultValue = "''") val printerKey: String = "",
+    @ColumnInfo(defaultValue = "''") val printerName: String = "",
+    @ColumnInfo(defaultValue = "0") val cutPaper: Boolean = false)
+
+@Entity(tableName = "return_sequences", foreignKeys = [ForeignKey(entity = ShopEntity::class, parentColumns = ["id"], childColumns = ["shopId"], onDelete = ForeignKey.RESTRICT)])
+data class ReturnSequenceEntity(@PrimaryKey val shopId: Long, val nextValue: Long)
+
+/** Device-local credentials are deliberately excluded from portable business backups. */
+@Entity(tableName = "owner_security")
+data class OwnerSecurityEntity(@PrimaryKey val id: Int = 1, val salt: String?, val pinHash: String?, val failedAttempts: Int,
+    val lockedUntil: Long, val autoLockMinutes: Int, val updatedAt: Long)

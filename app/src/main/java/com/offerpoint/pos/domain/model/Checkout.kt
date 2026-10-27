@@ -32,6 +32,8 @@ data class SoldItem(
     val unitCostPaise: Long,
     val discountPaise: Long,
     val lineTotalPaise: Long,
+    val saleItemId: Long = 0,
+    val category: String = "",
 )
 
 data class SaleDetails(

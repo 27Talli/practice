@@ -11,6 +11,7 @@ import com.offerpoint.pos.data.local.database.MIGRATION_1_2
 import com.offerpoint.pos.data.local.database.MIGRATION_3_4
 import com.offerpoint.pos.data.local.database.MIGRATION_2_3
 import com.offerpoint.pos.data.local.database.MIGRATION_4_5
+import com.offerpoint.pos.data.local.database.MIGRATION_5_6
 import com.offerpoint.pos.data.local.database.PosDatabase
 import com.offerpoint.pos.data.repository.RoomProductRepository
 import com.offerpoint.pos.data.repository.RoomSalesRepository
@@ -107,7 +108,7 @@ class MigrationTest {
         }
 
         val room = Room.databaseBuilder(context, PosDatabase::class.java, databaseName)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build()
         try {
             val shops = RoomShopRepository(room, false)
             val catalog = RoomProductRepository(room)

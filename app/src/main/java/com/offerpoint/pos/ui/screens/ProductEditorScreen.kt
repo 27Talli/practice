@@ -52,6 +52,7 @@ internal fun ProductEditorScreen(
     var barcode by rememberSaveable { mutableStateOf("") }
     var cost by rememberSaveable { mutableStateOf("") }
     var price by rememberSaveable { mutableStateOf("") }
+    var reorder by rememberSaveable { mutableStateOf("5") }
     var opening by rememberSaveable { mutableStateOf("0") }
     var sku by rememberSaveable { mutableStateOf("") }
     var initialized by rememberSaveable { mutableStateOf(false) }
@@ -71,6 +72,7 @@ internal fun ProductEditorScreen(
             cost = Money.input(original.purchaseCostPaise)
             price = Money.input(original.sellingPricePaise)
             sku = original.sku
+            reorder = original.reorderLevel.toString()
             initialized = true
         }
     }
@@ -114,7 +116,7 @@ internal fun ProductEditorScreen(
                     OutlinedTextField(
                         barcode, { barcode = it; dirty = true }, label = { Text("Existing manufacturer barcode (optional)") },
                         enabled = !busy, readOnly = sharedReadOnly, modifier = Modifier.fillMaxWidth(), singleLine = true,
-                        supportingText = { Text("Enter barcode text manually. Camera scanning is coming soon.") },
+                        supportingText = { Text("Enter an existing barcode, or use the camera in Checkout to scan saved products.") },
                     )
                     if (!editing && !sharedReadOnly) OutlinedButton(
                         onClick = { onFindExisting(barcode) }, enabled = !busy, modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -156,6 +158,7 @@ internal fun ProductEditorScreen(
                         modifier = Modifier.fillMaxWidth(), singleLine = true,
                     )
                 }
+                item { OutlinedTextField(reorder,{reorder=it;dirty=true},label={Text("Low-stock alert level (whole units)")},enabled=!busy,singleLine=true,keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),modifier=Modifier.fillMaxWidth()) }
                 if (!editing) item {
                     OutlinedTextField(
                         opening, { opening = it; dirty = true }, label = { Text("Opening stock (whole units) *") },
@@ -170,7 +173,7 @@ internal fun ProductEditorScreen(
                 if (state.error != null) item { ErrorNotice(state.error) }
                 item {
                     Button(
-                        onClick = { onSave(ProductFormInput(name, category, variant, barcode, cost, price, opening), associatedProductId) },
+                        onClick = { onSave(ProductFormInput(name, category, variant, barcode, cost, price, opening, reorder), associatedProductId) },
                         enabled = !busy && !state.saved,
                         modifier = Modifier.fillMaxWidth().height(54.dp),
                     ) { Text(if (state.saving) "Saving…" else if (editing) "Save changes" else if (sharedReadOnly) "Associate with ${shop.name}" else "Save product") }

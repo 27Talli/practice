@@ -9,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.offerpoint.pos.data.local.database.MIGRATION_3_4
 import com.offerpoint.pos.data.local.database.MIGRATION_4_5
+import com.offerpoint.pos.data.local.database.MIGRATION_5_6
 import com.offerpoint.pos.data.local.database.PosDatabase
 import com.offerpoint.pos.data.repository.*
 import com.offerpoint.pos.domain.model.*
@@ -57,7 +58,7 @@ class Migration4Test {
         helper.runMigrationsAndValidate(name, 4, true, MIGRATION_3_4).use {
             it.query("PRAGMA foreign_key_check").use { cursor -> assertEquals(0, cursor.count) }
         }
-        val db = Room.databaseBuilder(context, PosDatabase::class.java, name).addMigrations(MIGRATION_3_4, MIGRATION_4_5).build()
+        val db = Room.databaseBuilder(context, PosDatabase::class.java, name).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build()
         try {
             val shops = RoomShopRepository(db, false); shops.initialize()
             val sales = RoomSalesRepository(db)

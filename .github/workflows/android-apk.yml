@@ -42,6 +42,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
       - name: Download the verified Milestone 1 schema
         if: hashFiles('app/schemas/**/1.json') == ''
         uses: actions/download-artifact@v4
@@ -84,12 +85,12 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose app/build/outputs/apk/demo/debug/app-demo-debug.apk
           sha256sum app/build/outputs/apk/live/debug/app-live-debug.apk app/build/outputs/apk/demo/debug/app-demo-debug.apk | tee apk-checksums.txt
           {
-            echo '## Offer Point POS Milestone 5'
+            echo '## Offer Point POS 1.0.0-rc1'
             echo
             echo 'Signed debug APKs for Android 8.0 and newer.'
             echo 'Live and Demo have separate application IDs and data.'
             echo 'Barcode decoding is bundled and runs offline; the app requests camera access only for scanning.'
-            echo 'Backup/restore, receipt, migration, scanner, and checkout UI tests run on Android below.'
+            echo 'Returns, reports, expenses, security, backup/restore, receipts, migrations, scanner and checkout tests run below.'
             echo 'Physical-camera and real-printer output still require acceptance testing on the shop phone and printer.'
             echo
             echo '### SHA-256 checksums'
@@ -111,6 +112,8 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/live/release/app-live-release.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/demo/release/app-demo-release.apk
           sha256sum app/build/outputs/apk/live/release/app-live-release.apk app/build/outputs/apk/demo/release/app-demo-release.apk >> apk-checksums.txt
+      - name: Run database, migration, and checkout UI tests on Android
+        run: bash scripts/run-android-tests.sh
       - name: Upload retained-key release APKs
         if: env.POS_SIGNING_READY == 'true'
         uses: actions/upload-artifact@v4
@@ -137,8 +140,6 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 90
-      - name: Run database, migration, and checkout UI tests on Android
-        run: bash scripts/run-android-tests.sh
       - name: Remove staged signing key
         if: always() && env.POS_SIGNING_READY == 'true'
         run: |

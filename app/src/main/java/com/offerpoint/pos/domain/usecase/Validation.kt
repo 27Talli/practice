@@ -50,8 +50,10 @@ object ProductValidation {
     fun validate(draft: ProductDraft): ProductDraft {
         if (draft.name.isBlank()) throw ValidationException("name", "Product name is required.")
         if (draft.category.isBlank()) throw ValidationException("category", "Category is required.")
+        if(draft.name.length>120 || draft.category.length>80 || draft.variant.length>120) throw ValidationException("name","Use up to 120 characters for a product name/variant and 80 for its category.")
         if (draft.purchaseCostPaise < 0) throw ValidationException("cost", "Purchase cost cannot be negative.")
         if (draft.sellingPricePaise < 0) throw ValidationException("price", "Selling price cannot be negative.")
+        if (draft.reorderLevel < 0) throw ValidationException("reorderLevel", "Low-stock alert level cannot be negative.")
         if (draft.openingQuantity < 0) throw ValidationException("quantity", "Opening stock cannot be negative.")
         val barcode = draft.manufacturerBarcode?.trim()?.takeIf { it.isNotEmpty() }
         if (barcode != null && (barcode.length > 128 || barcode.any { it.isISOControl() })) {

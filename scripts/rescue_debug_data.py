@@ -25,16 +25,22 @@ TABLES = ['shops', 'products', 'product_barcodes', 'shop_products', 'inventory',
 
 
 def write_payload(connection, destination, demo, created_at=None):
-    """Explicitly lift schema 3/4 into format-1/schema-5; all original business values are unchanged."""
+    """Lift 3/4/5 into snapshot schema 5; preserve schema 6 business data without device credentials."""
     version = connection.execute('PRAGMA user_version').fetchone()[0]
-    if version not in (3, 4, 5):
-        raise ValueError('Only database versions 3, 4 and 5 are supported by this rescue tool.')
+    if version not in (3, 4, 5, 6):
+        raise ValueError('Only database versions 3, 4, 5 and 6 are supported by this rescue tool.')
     if connection.execute('PRAGMA quick_check').fetchall() != [('ok',)] or connection.execute('PRAGMA foreign_key_check').fetchall():
         raise ValueError('Database integrity checks failed. Keep the original installation intact.')
-    schema = json.loads((ROOT / 'app/schemas/com.offerpoint.pos.data.local.database.PosDatabase/4.json').read_text())['database']
+    schema_version = 6 if version == 6 else 4
+    schema_path = ROOT / f'app/schemas/com.offerpoint.pos.data.local.database.PosDatabase/{schema_version}.json'
+    if not schema_path.is_file():
+        raise ValueError('Build the app once to export its schema before rescuing a version 6 database.')
+    schema = json.loads(schema_path.read_text())['database']
     entities = {entry['tableName']: entry for entry in schema['entities']}
     existing = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-    snapshot = dict(format=1, databaseVersion=5, backupId=str(uuid.uuid4()),
+    tables = TABLES.copy()
+    if version == 6: tables.insert(tables.index('sales_sequences') + 1, 'return_sequences')
+    snapshot = dict(format=1, databaseVersion=6 if version == 6 else 5, backupId=str(uuid.uuid4()),
                     createdAt=created_at if created_at is not None else int(time.time() * 1000), variant='DEMO' if demo else 'LIVE')
     def dump(value, output):
         json.dump(value, output, ensure_ascii=True, separators=(',', ':'), allow_nan=False)
@@ -45,10 +51,10 @@ def write_payload(connection, destination, demo, created_at=None):
             if index: output.write(',')
             dump(name, output); output.write(':'); dump(value, output)
         output.write(',"tables":[')
-        for index, table in enumerate(TABLES):
+        for index, table in enumerate(tables):
             if index: output.write(',')
             columns = [field['columnName'] for field in entities[table]['fields']]
-            if table == 'app_settings': columns.append('dataGeneration')
+            if table == 'app_settings' and version != 6: columns.append('dataGeneration')
             output.write('{"name":'); dump(table, output); output.write(',"columns":'); dump(columns, output); output.write(',"rows":[')
             count = 0
             if table in existing:
@@ -67,7 +73,9 @@ def write_payload(connection, destination, demo, created_at=None):
             elif not (version == 3 and table == 'receipt_settings'):
                 raise ValueError(f'Missing required table: {table}')
             output.write('],"rowCount":'); dump(count, output); output.write('}')
-        output.write('],"sequences":'); dump(connection.execute('SELECT name,seq FROM sqlite_sequence ORDER BY name').fetchall(), output); output.write('}')
+        sequences = connection.execute('SELECT name,seq FROM sqlite_sequence ORDER BY name').fetchall()
+        if any(name not in tables for name, _ in sequences): raise ValueError('Unexpected database ID sequence')
+        output.write('],"sequences":'); dump(sequences, output); output.write('}')
     if destination.stat().st_size > LIMIT: raise ValueError('Backup exceeds 128 MiB')
 
 

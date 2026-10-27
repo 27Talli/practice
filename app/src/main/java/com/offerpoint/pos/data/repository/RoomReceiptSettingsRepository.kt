@@ -6,6 +6,7 @@ import com.offerpoint.pos.data.local.entity.AuditEventEntity
 import com.offerpoint.pos.data.local.entity.ReceiptSettingsEntity
 import com.offerpoint.pos.domain.model.ReceiptPaper
 import com.offerpoint.pos.domain.model.ReceiptSettings
+import com.offerpoint.pos.domain.model.PrinterMode
 import com.offerpoint.pos.domain.repository.ReceiptSettingsRepository
 import com.offerpoint.pos.domain.usecase.ReceiptValidation
 import org.json.JSONObject
@@ -14,7 +15,7 @@ class RoomReceiptSettingsRepository(private val database: PosDatabase, private v
     private val dao = database.posDao()
     override suspend fun getSettings(shopId: Long): ReceiptSettings = database.withWriteTransaction {
         require(dao.findShop(shopId) != null) { "This shop does not exist." }
-        dao.getReceiptSettings(shopId)?.let { ReceiptSettings(it.shopId, ReceiptPaper.valueOf(it.paper), it.footer) }
+        dao.getReceiptSettings(shopId)?.let { ReceiptSettings(it.shopId, ReceiptPaper.valueOf(it.paper), it.footer,PrinterMode.valueOf(it.printerMode),it.printerKey,it.printerName,it.cutPaper) }
             ?: ReceiptSettings(shopId)
     }
 
@@ -23,13 +24,13 @@ class RoomReceiptSettingsRepository(private val database: PosDatabase, private v
         database.withWriteTransaction {
             require(dao.findShop(valid.shopId) != null) { "This shop does not exist." }
             val previous = dao.getReceiptSettings(valid.shopId)
-            if (previous?.paper == valid.paper.name && previous.footer == valid.footer) return@withWriteTransaction
-            val next = ReceiptSettingsEntity(valid.shopId, valid.paper.name, valid.footer, now())
+            if (previous?.paper == valid.paper.name && previous.footer == valid.footer && previous.printerMode==valid.printerMode.name && previous.printerKey==valid.printerKey && previous.printerName==valid.printerName && previous.cutPaper==valid.cutPaper) return@withWriteTransaction
+            val next = ReceiptSettingsEntity(valid.shopId, valid.paper.name, valid.footer, now(),valid.printerMode.name,valid.printerKey,valid.printerName,valid.cutPaper)
             dao.upsertReceiptSettings(next)
             dao.insertAudit(AuditEventEntity(entityType = "RECEIPT_SETTINGS", entityId = valid.shopId, shopId = valid.shopId,
                 action = "SAVE_RECEIPT_SETTINGS", beforeValue = previous?.snapshot(), afterValue = next.snapshot(), createdAt = next.updatedAt))
         }
     }
 
-    private fun ReceiptSettingsEntity.snapshot(): String = JSONObject().put("paper", paper).put("footer", footer).toString()
+    private fun ReceiptSettingsEntity.snapshot(): String = JSONObject().put("paper", paper).put("footer", footer).put("printerMode",printerMode).put("printerName",printerName).put("cutPaper",cutPaper).toString()
 }

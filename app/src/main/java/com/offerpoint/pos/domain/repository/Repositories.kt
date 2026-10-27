@@ -24,7 +24,7 @@ interface ProductRepository {
     suspend fun createProduct(shopId: Long, draft: ProductDraft): Long
     suspend fun updateProduct(shopId: Long, productId: Long, draft: ProductDraft)
     /** Explicitly associates an existing registry product, keeping its shared identity intact. */
-    suspend fun associateProduct(shopId: Long, productId: Long, purchaseCostPaise: Long, sellingPricePaise: Long, openingQuantity: Long)
+    suspend fun associateProduct(shopId: Long, productId: Long, purchaseCostPaise: Long, sellingPricePaise: Long, openingQuantity: Long, reorderLevel: Long = 5)
 }
 
 interface InventoryRepository {

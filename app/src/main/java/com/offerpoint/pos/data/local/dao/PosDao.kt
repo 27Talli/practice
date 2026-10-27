@@ -21,6 +21,7 @@ data class ProductRow(
     val purchaseCostPaise: Long,
     val sellingPricePaise: Long,
     val quantity: Long,
+    val reorderLevel: Long,
 )
 
 /** The immutable printed label, joined only to its globally registered barcode value. */
@@ -103,7 +104,7 @@ interface PosDao {
     @Query("""
         SELECT p.id, sp.shopId, p.sku, p.name, p.category, p.variant,
             (SELECT b.value FROM product_barcodes b WHERE b.productId = p.id AND b.kind = 'MANUFACTURER' ORDER BY b.id LIMIT 1) AS manufacturerBarcode,
-            sp.purchaseCostPaise, sp.sellingPricePaise, i.quantity
+            sp.purchaseCostPaise, sp.sellingPricePaise, i.quantity, sp.reorderLevel
         FROM product_barcodes scanned
         JOIN products p ON p.id = scanned.productId
         JOIN shop_products sp ON sp.productId = p.id
@@ -128,11 +129,14 @@ interface PosDao {
     @Query("UPDATE shop_products SET purchaseCostPaise = :purchaseCostPaise, sellingPricePaise = :sellingPricePaise, updatedAt = :updatedAt WHERE shopId = :shopId AND productId = :productId")
     suspend fun updateShopProductPrices(shopId: Long, productId: Long, purchaseCostPaise: Long, sellingPricePaise: Long, updatedAt: Long): Int
 
+    @Query("UPDATE shop_products SET reorderLevel=:level, updatedAt=:timestamp WHERE shopId=:shopId AND productId=:productId")
+    suspend fun setReorderLevel(shopId:Long,productId:Long,level:Long,timestamp:Long):Int
+
     // instr() treats search input literally, including '%' and '_'; barcode text retains leading zeros.
     @Query("""
         SELECT p.id, sp.shopId, p.sku, p.name, p.category, p.variant,
             (SELECT b.value FROM product_barcodes b WHERE b.productId = p.id AND b.kind = 'MANUFACTURER' ORDER BY b.id LIMIT 1) AS manufacturerBarcode,
-            sp.purchaseCostPaise, sp.sellingPricePaise, i.quantity
+            sp.purchaseCostPaise, sp.sellingPricePaise, i.quantity, sp.reorderLevel
         FROM products p
         JOIN shop_products sp ON sp.productId = p.id
         JOIN inventory i ON i.shopId = sp.shopId AND i.productId = sp.productId
@@ -149,7 +153,7 @@ interface PosDao {
     @Query("""
         SELECT p.id, sp.shopId, p.sku, p.name, p.category, p.variant,
             (SELECT b.value FROM product_barcodes b WHERE b.productId = p.id AND b.kind = 'MANUFACTURER' ORDER BY b.id LIMIT 1) AS manufacturerBarcode,
-            sp.purchaseCostPaise, sp.sellingPricePaise, i.quantity
+            sp.purchaseCostPaise, sp.sellingPricePaise, i.quantity, sp.reorderLevel
         FROM products p
         JOIN shop_products sp ON sp.productId = p.id
         JOIN inventory i ON i.shopId = sp.shopId AND i.productId = sp.productId
@@ -274,4 +278,61 @@ interface PosDao {
 
     @Insert
     suspend fun insertExpense(expense: ExpenseEntity): Long
+
+    @Query("SELECT * FROM returns WHERE requestId=:requestId LIMIT 1")
+    suspend fun findRefundRequest(requestId:String):ReturnEntity?
+
+    @Query("SELECT * FROM returns WHERE shopId=:shopId AND id=:id")
+    suspend fun getRefund(shopId:Long,id:Long):ReturnEntity?
+
+    @Query("SELECT * FROM returns WHERE shopId=:shopId ORDER BY createdAt DESC,id DESC")
+    fun observeRefunds(shopId:Long):Flow<List<ReturnEntity>>
+
+    @Query("SELECT * FROM return_items WHERE returnId=:id AND shopId=:shopId ORDER BY id")
+    suspend fun getRefundItems(shopId:Long,id:Long):List<ReturnItemEntity>
+
+    @Query("SELECT COALESCE(SUM(quantity),0) FROM return_items WHERE saleItemId=:itemId AND shopId=:shopId")
+    suspend fun returnedQuantity(shopId:Long,itemId:Long):Long
+
+    @Query("SELECT * FROM return_sequences WHERE shopId=:shopId")
+    suspend fun getReturnSequence(shopId:Long):ReturnSequenceEntity?
+
+    @Upsert
+    suspend fun upsertReturnSequence(sequence:ReturnSequenceEntity)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM returns WHERE shopId=:shopId AND receiptNumber=:reference)")
+    suspend fun refundReferenceExists(shopId:Long,reference:String):Boolean
+
+    @Query("SELECT * FROM expenses WHERE requestId=:requestId LIMIT 1")
+    suspend fun findExpenseRequest(requestId:String):ExpenseEntity?
+
+    @Query("SELECT * FROM expenses WHERE shopId=:shopId AND id=:id")
+    suspend fun getExpense(shopId:Long,id:Long):ExpenseEntity?
+
+    @Update
+    suspend fun updateExpense(expense:ExpenseEntity):Int
+
+    @Query("SELECT * FROM expenses WHERE shopId=:shopId ORDER BY incurredAt DESC,id DESC")
+    fun observeExpenses(shopId:Long):Flow<List<ExpenseEntity>>
+
+    @Query("SELECT (SELECT COUNT(*) FROM sales WHERE shopId=:shopId)+(SELECT COUNT(*) FROM returns WHERE shopId=:shopId)+(SELECT COUNT(*) FROM expenses WHERE shopId=:shopId)+(SELECT COUNT(*) FROM inventory WHERE shopId=:shopId)+(SELECT COUNT(*) FROM shop_products WHERE shopId=:shopId)")
+    fun observeFinanceChanges(shopId:Long):Flow<Long>
+
+    @Query("SELECT * FROM sales WHERE shopId=:shopId AND status='COMPLETED' AND completedAt>=:start AND completedAt<:end ORDER BY id")
+    suspend fun reportSales(shopId:Long,start:Long,end:Long):List<SaleEntity>
+
+    @Query("SELECT * FROM returns WHERE shopId=:shopId AND createdAt>=:start AND createdAt<:end ORDER BY id")
+    suspend fun reportRefunds(shopId:Long,start:Long,end:Long):List<ReturnEntity>
+
+    @Query("SELECT * FROM expenses WHERE shopId=:shopId AND incurredAt>=:start AND incurredAt<:end AND isVoided=0")
+    suspend fun reportExpenses(shopId:Long,start:Long,end:Long):List<ExpenseEntity>
+
+    @Query("SELECT * FROM owner_security WHERE id=1")
+    suspend fun getSecurity():OwnerSecurityEntity?
+
+    @Query("SELECT * FROM owner_security WHERE id=1")
+    fun observeSecurity():Flow<OwnerSecurityEntity?>
+
+    @Upsert
+    suspend fun upsertSecurity(settings:OwnerSecurityEntity)
 }
