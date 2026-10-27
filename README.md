@@ -6,9 +6,13 @@ Milestone 4 adds **customer receipts for saved cash sales**, offline PDF sharing
 
 Receipt generation is read-only: previewing, exporting, cancelling or reprinting never posts another sale, deducts stock or allocates a new sale reference. Customer receipts exclude purchase costs, staff code keys and cost-label payloads. Direct Bluetooth/USB thermal pairing depends on the printer model and remains deferred; Android printing uses a compatible installed print service.
 
-## Build verification status
+## Current verified build
 
-Milestone 4 source and tests are implemented; the new Android build is pending. The last verified baseline is [Milestone 3 run 40448504832](https://github.com/27Talli/practice/actions/runs/40448504832). Actual new results and APK links will be recorded in [VERIFICATION.md](VERIFICATION.md) after the workflow completes.
+Version **0.4.0** passed [GitHub Actions run 40458420557](https://github.com/27Talli/practice/actions/runs/40458420557): **87 JVM tests per variant**, **75 Android emulator tests**, lint, both APK builds and signature verification. Tests include the checkout-to-receipt UI, native PDF rendering, print-engine page selection/cancellation, and validated Room upgrades through version 4. See [VERIFICATION.md](VERIFICATION.md) for source, checksums and limits.
+
+[Download Live APK ZIP](https://github.com/27Talli/practice/actions/runs/40458420557/artifacts/12713711535) · [Download Demo APK ZIP](https://github.com/27Talli/practice/actions/runs/40458420557/artifacts/12713641865)
+
+Extract the ZIP and install its `.apk` on Android 8.0+; GitHub may require sign-in. Artifacts are retained until 25 January 2027.
 
 Use Demo for evaluation; it keeps sample data separate. **Do not uninstall or clear existing business data to resolve a debug signing-key mismatch.** See the signing and upgrade notes below.
 
@@ -82,7 +86,7 @@ Room integration tests require an API 26+ emulator or an attached Android phone.
 ./gradlew :app:connectedLiveDebugAndroidTest
 ```
 
-The JVM suite covers validation, exact checkout arithmetic, payment recovery, cost-code boundaries, optical decoding and ViewModel behavior. The Android suite includes Room/migration tests, an end-to-end Compose checkout test, and native PDF generation/rendering with barcode decoding and FileProvider access. New tests cover label registration, private cost codes, alias persistence, Live/Demo label namespaces, UPC/EAN ambiguity, scan state and duplicate guards, and version 2 → 3 migration. Executed totals are recorded in VERIFICATION.md. GitHub Actions runs the JVM suite for both variants and the device suite on Android; consult its completed logs and reports for actual results. Coverage includes idempotent shop creation, persistent selection, product insertion/editing/retrieval, search, shop-specific prices and quantities, explicit product association, global internal/manufacturer barcode uniqueness, nonnegative stock, integer overflow, required adjustment reasons, ledger/audit consistency, forced transaction rollback, foreign-key isolation of future sales/returns, and closing/reopening a disk database. Test fixtures are created by tests and never inserted into the live app.
+The **87-test JVM suite** covers validation, exact checkout arithmetic, payment recovery, cost-code boundaries, optical decoding and ViewModel behavior. The **75-test Android suite** includes Room/migration tests, an end-to-end Compose checkout test, and native PDF generation/rendering with barcode decoding and FileProvider access. New tests cover label registration, private cost codes, alias persistence, Live/Demo label namespaces, UPC/EAN ambiguity, scan state and duplicate guards, and version 2 → 3 migration. Executed totals are recorded in VERIFICATION.md. GitHub Actions runs the JVM suite for both variants and the device suite on Android; consult its completed logs and reports for actual results. Coverage includes idempotent shop creation, persistent selection, product insertion/editing/retrieval, search, shop-specific prices and quantities, explicit product association, global internal/manufacturer barcode uniqueness, nonnegative stock, integer overflow, required adjustment reasons, ledger/audit consistency, forced transaction rollback, foreign-key isolation of future sales/returns, and closing/reopening a disk database. Test fixtures are created by tests and never inserted into the live app.
 
 A supplemental source-reflected SQLite check can run without Android tooling using Python 3:
 
@@ -182,7 +186,7 @@ Supporting `AppSettings`, `SkuSequence`, `SaleSequence`, and `AuditEvent` tables
 - Receipt references such as `OP-S-000001` and `FF-S-000001` allocate in the same transaction as the sale. They identify saved sales; receipt documents and Android printing reuse these references and never allocate a second sale.
 - Cart drafts use Android SavedStateHandle for normal process recreation; they are not long-term parked carts. Completed sales are durable Room records. Force-stopping before Android saves UI state may discard an unpaid draft, while completed sales remain accessible in Sales history.
 
-Room exports versioned schemas to `app/schemas`; the workflow includes generated schemas in the `verification-reports` artifact. Actual Room-generated schemas 1, 2 and 3 are committed; schema 4 will be committed after successful verification. Explicit migrations preserve business records through 1 → 2 → 3 → 4. **There is no destructive migration fallback.** Future schema changes must increment the version, commit an explicit migration, and add migration tests before release. Keep historical stock and audit rows; deletion/archival workflows are outside this milestone.
+Room exports versioned schemas to `app/schemas`; the workflow includes generated schemas in the `verification-reports` artifact. Actual Room-generated schemas 1, 2, 3 and 4 are committed after successful verification. Explicit migrations preserve business records through 1 → 2 → 3 → 4. **There is no destructive migration fallback.** Future schema changes must increment the version, commit an explicit migration, and add migration tests before release. Keep historical stock and audit rows; deletion/archival workflows are outside this milestone.
 
 ## Secret cost-code labels
 
