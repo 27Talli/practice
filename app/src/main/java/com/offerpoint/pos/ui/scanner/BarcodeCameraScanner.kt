@@ -161,7 +161,7 @@ private fun CameraPreview(enabled: Boolean, onBarcode: (String, String) -> Unit,
                     "Another app is using the camera. Close it and try the camera again."
                 CameraState.ERROR_CAMERA_DISABLED ->
                     "Android has disabled camera access. Check the phone's camera privacy setting."
-                else -> "The camera stopped working. Try it again, or use Products to add an item."
+                else -> "The camera stopped working. Try it again, or enter the code manually."
             } else if (state.type == CameraState.Type.OPEN) cameraError = null
         }
         info?.torchState?.observe(owner, torchObserver)
@@ -224,7 +224,7 @@ private fun CameraPreview(enabled: Boolean, onBarcode: (String, String) -> Unit,
                 }
                 if (!disposed.get()) camera = ready.bindToLifecycle(owner, selector, preview, analysis)
             } catch (_: Exception) {
-                if (!disposed.get()) cameraError = "The camera could not be opened. Close other camera apps and try again, or use Products."
+                if (!disposed.get()) cameraError = "The camera could not be opened. Close other camera apps and try again, or enter the code manually."
             }
         }, mainExecutor)
         onDispose {

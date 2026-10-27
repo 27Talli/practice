@@ -86,6 +86,10 @@ fun StaffToolsAction(shop: Shop, products: ProductRepository, labels: BarcodeLab
                     state.selected?.let { product -> item {
                         StatusCard(product.name, "${product.sku}\nSelling price: ${Money.format(product.sellingPricePaise)}\nBought for: ${Money.format(product.purchaseCostPaise)}\nStock: ${product.quantity}")
                         Text("Current prices for ${shop.name}. This lookup does not add to the cart or change stock.", style = MaterialTheme.typography.bodySmall)
+                        state.labelPurchaseCostPaise?.let { cost ->
+                            StatusCard("Purchase cost on this label", Money.format(cost))
+                            Text("This is the original label snapshot. Current product cost and sale profit use the current inventory record.", style = MaterialTheme.typography.bodySmall)
+                        }
                     } }
                     if (!state.scanning && state.selected == null) {
                         if (!state.loading && state.products.isEmpty()) item { Text("No products found in this shop.") }

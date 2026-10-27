@@ -37,6 +37,7 @@ class StaffToolsViewModelTest {
         val vm = staff(); vm.open(); vm.scan(true); vm.scanned("000123","CODE_128"); advanceUntilIdle()
         assertEquals(0L, vm.state.value.selected?.quantity)
         assertEquals(300L, vm.state.value.selected?.purchaseCostPaise)
+        assertNull(vm.state.value.labelPurchaseCostPaise)
         assertEquals(500L, vm.state.value.selected?.sellingPricePaise)
         assertFalse(vm.state.value.scanning)
     }
@@ -44,6 +45,7 @@ class StaffToolsViewModelTest {
         labels.row = InternalBarcodeLabel(1,1,7,product.sku,product.name,"","000123","OLD",123,"BLACKHORSE",1)
         val vm = staff(); vm.open(); vm.scan(true); vm.scanned("000123","CODE_128"); advanceUntilIdle()
         assertEquals(300L, vm.state.value.selected?.purchaseCostPaise)
+        assertEquals(123L, vm.state.value.labelPurchaseCostPaise)
     }
     @Test fun anotherShopsInternalLabelCannotRevealThatShopsCosts() = runTest(dispatcher) {
         labels.row = InternalBarcodeLabel(1,2,7,product.sku,product.name,"","000123","OLD",123,"BLACKHORSE",1)

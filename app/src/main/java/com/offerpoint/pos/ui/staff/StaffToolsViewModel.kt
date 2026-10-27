@@ -16,6 +16,7 @@ data class StaffToolsState(
     val productError: String? = null,
     val lookupLoading: Boolean = false,
     val selected: Product? = null,
+    val labelPurchaseCostPaise: Long? = null,
     val scanning: Boolean = false,
     val error: String? = null,
     val hasSale: Boolean = false,
@@ -72,7 +73,7 @@ class StaffToolsViewModel(private val products: ProductRepository, private val l
     fun search(value: String) {
         if (!state.value.open) return
         lookup?.cancel()
-        mutable.update { it.copy(query = value, selected = null, lookupLoading = false, error = null) }
+        mutable.update { it.copy(query = value, selected = null, labelPurchaseCostPaise = null, lookupLoading = false, error = null) }
         query.value = true to value
     }
 
@@ -84,12 +85,12 @@ class StaffToolsViewModel(private val products: ProductRepository, private val l
 
     fun scanned(value: String, format: String) {
         if (!state.value.open || !state.value.scanning) return
-        mutable.update { it.copy(scanning = false, selected = null, lookupLoading = true, error = null) }
+        mutable.update { it.copy(scanning = false, selected = null, labelPurchaseCostPaise = null, lookupLoading = true, error = null) }
         lookup?.cancel()
         lookup = viewModelScope.launch {
             try {
                 val match = LookupScannedProduct(products, labels)(shopId, value, format, requireStock = false)
-                mutable.update { it.copy(selected = match.product, lookupLoading = false) }
+                mutable.update { it.copy(selected = match.product, labelPurchaseCostPaise = match.label?.purchaseCostPaise, lookupLoading = false) }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 mutable.update { it.copy(error = message(e), lookupLoading = false) }
@@ -100,7 +101,7 @@ class StaffToolsViewModel(private val products: ProductRepository, private val l
     fun select(product: Product) {
         if (!state.value.open) return
         lookup?.cancel()
-        mutable.update { it.copy(selected = null, lookupLoading = true, error = null) }
+        mutable.update { it.copy(selected = null, labelPurchaseCostPaise = null, lookupLoading = true, error = null) }
         lookup = viewModelScope.launch {
             try {
                 require(product.shopId == shopId) { "Choose a product from this shop." }
