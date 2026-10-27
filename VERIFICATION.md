@@ -1,3 +1,17 @@
+# Delivery verification — Offer Point POS 1.2.0-rc1
+
+Current candidate: version code **8**, Room schema **6** (unchanged).
+
+Local verification on 27 October 2026 built Live/Demo debug APKs and the Android test APK, and passed **159 JVM tests per variant**. Android device tests and final lint/signature verification are in progress; the prior release verification below does not verify the new candidate. This page will be updated with the exact CI source/run, APKs and actual results after completion.
+
+New tests exercise integer gross profit after all discounts, losses/overflow, read-only staff lookups and closing private details, receipt-reference/shop validation, cancellation of stale lookups, actual offline QR decoding and product-vs-receipt scanner separation. New native tests cover QR readability from PDF and ESC/POS output, receipt persistence/shop isolation and the dedicated Returns UI.
+
+No runtime dependency, permission or database schema was added. Owner-retained signing and physical phone/printer acceptance remain required; see [safe upgrades](docs/SAFE_UPGRADES.md) and [shop acceptance](docs/SHOP_ACCEPTANCE.md).
+
+---
+
+Previous verified candidate (1.1.0-rc1):
+
 # Delivery verification — Offer Point POS 1.1.0-rc1
 
 [GitHub Actions run 40526636656](https://github.com/27Talli/practice/actions/runs/40526636656) completed successfully on **27 October 2026**, building source **`818f74c7cd2a2da53c412ad3e814c89afcd41394`**. App version code: **7**. Room database: **6**.

@@ -20,6 +20,7 @@ import com.offerpoint.pos.domain.usecase.Money
 import com.offerpoint.pos.domain.usecase.ReportCsv
 import com.offerpoint.pos.ui.components.*
 import com.offerpoint.pos.ui.screens.*
+import com.offerpoint.pos.ui.scanner.BarcodeCaptureDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -60,16 +61,27 @@ fun RefundScreen(shop:Shop,state:RefundState,onEdit:(Long,String,String)->Unit,o
 }
 
 @Composable
-fun RefundHistoryScreen(shop:Shop,rows:List<RefundDetails>,error:String?,onOpen:(Long)->Unit,onBack:()->Unit){
+fun RefundHistoryScreen(shop:Shop,state:RefundHistoryState,onReference:(String)->Unit,onFind:()->Unit,onScan:(String)->Unit,onReturn:()->Unit,onRetry:()->Unit,onOpen:(Long)->Unit,onBack:()->Unit){
+    var scanning by remember { mutableStateOf(false) }
     PosScaffold("Returns & refunds",shop.name,onBack){padding->LazyColumn(Modifier.fillMaxSize().padding(padding).imePadding(),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+        item{Text("Start a return",style=MaterialTheme.typography.headlineMedium);Text("Scan the original receipt QR or enter its number. Review the saved sale here before selecting items to return.")}
+        item{OutlinedButton(onClick={scanning=true},enabled=!state.lookingUp,modifier=Modifier.fillMaxWidth().heightIn(min=52.dp)){Text("Scan receipt QR")}}
+        item{OutlinedTextField(state.reference,onReference,label={Text("Original sale receipt number")},placeholder={Text("${shop.code}-S-000001")},singleLine=true,modifier=Modifier.fillMaxWidth())}
+        item{Button(onClick=onFind,enabled=!state.lookingUp&&state.reference.isNotBlank(),modifier=Modifier.fillMaxWidth().heightIn(min=52.dp)){Text(if(state.lookingUp)"Finding receipt…" else "Find original sale")}}
+        if(state.lookingUp)item{LinearProgressIndicator(Modifier.fillMaxWidth())}
+        state.lookupError?.let{item{ErrorNotice(it)}}
+        state.sale?.let{sale->item{StatusCard("Original sale found","${sale.summary.receiptNumber}\n${financeDate(sale.summary.completedAt)}\n${Money.format(sale.summary.totalPaise)}");Button(onClick=onReturn,modifier=Modifier.fillMaxWidth().padding(top=8.dp).heightIn(min=52.dp)){Text("Select items to return")}}}
         item{Text("Saved returns",style=MaterialTheme.typography.headlineMedium)}
-        if(error!=null)item{ErrorNotice(error)}
-        if(rows.isEmpty()&&error==null)item{EmptyState("No returns yet","Open a saved sale from Sales history to return its items.")}
-        items(rows,key={it.id}){row->Card(onClick={onOpen(row.id)}){Column(Modifier.fillMaxWidth().padding(18.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
+        state.historyError?.let{item{ErrorNotice(it,onRetry)}}
+        if(state.loading)item{LinearProgressIndicator(Modifier.fillMaxWidth())}
+        if(state.rows.isEmpty()&&state.historyError==null&&!state.loading)item{EmptyState("No returns yet","Find an original sale receipt above to create a return.")}
+        items(state.rows,key={it.id}){row->Card(onClick={onOpen(row.id)}){Column(Modifier.fillMaxWidth().padding(18.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
             Text(row.receiptNumber,style=MaterialTheme.typography.titleMedium);Text("Original: ${row.originalReceiptNumber}")
             Text(financeDate(row.createdAt));Text("Refund ${Money.format(row.refundPaise)}",color=MaterialTheme.colorScheme.primary);Text(row.reason)
         }}}
     }}
+    if(scanning)BarcodeCaptureDialog("Scan receipt QR","Point at the QR on the original sales receipt. This finds the saved sale; it does not issue a refund.",
+        onCaptured={value,_->scanning=false;onScan(value)},onDismiss={scanning=false},receiptQrOnly=true)
 }
 
 @Composable

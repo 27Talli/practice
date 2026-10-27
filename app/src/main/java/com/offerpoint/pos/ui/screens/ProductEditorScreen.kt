@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,6 +32,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.offerpoint.pos.domain.model.Shop
 import com.offerpoint.pos.domain.usecase.Money
+import com.offerpoint.pos.domain.usecase.CapturedProductBarcode
+import com.offerpoint.pos.ui.scanner.BarcodeCaptureDialog
 import com.offerpoint.pos.ui.components.ErrorNotice
 import com.offerpoint.pos.ui.components.StatusCard
 
@@ -59,6 +62,8 @@ internal fun ProductEditorScreen(
     var associatedProductId by rememberSaveable { mutableStateOf<Long?>(null) }
     var dirty by rememberSaveable { mutableStateOf(false) }
     var discardDialog by rememberSaveable { mutableStateOf(false) }
+    var scanning by androidx.compose.runtime.remember { mutableStateOf(false) }
+    var barcodeError by androidx.compose.runtime.remember { mutableStateOf<String?>(null) }
     val busy = state.saving || state.finding
     val sharedReadOnly = associatedProductId != null
 
@@ -116,8 +121,13 @@ internal fun ProductEditorScreen(
                     OutlinedTextField(
                         barcode, { barcode = it; dirty = true }, label = { Text("Existing manufacturer barcode (optional)") },
                         enabled = !busy, readOnly = sharedReadOnly, modifier = Modifier.fillMaxWidth(), singleLine = true,
-                        supportingText = { Text("Enter an existing barcode, or use the camera in Checkout to scan saved products.") },
+                        supportingText = { Text("Scan the packaging barcode or type it. Leading zeros are kept.") },
                     )
+                    if (!sharedReadOnly) OutlinedButton(
+                        onClick = { barcodeError = null; scanning = true }, enabled = !busy,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp).heightIn(min = 48.dp),
+                    ) { Text("Scan existing barcode") }
+                    barcodeError?.let { ErrorNotice(it) }
                     if (!editing && !sharedReadOnly) OutlinedButton(
                         onClick = { onFindExisting(barcode) }, enabled = !busy, modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     ) { Text(if (state.finding) "Finding…" else "Find existing product by barcode / SKU") }
@@ -184,6 +194,16 @@ internal fun ProductEditorScreen(
             }
         }
     }
+    if (scanning && !busy && !sharedReadOnly) BarcodeCaptureDialog(
+        title = "Scan existing barcode",
+        description = "Point at the product's packaging barcode. It fills the barcode field; review the details and tap Save product to register it.",
+        onCaptured = { value, _ ->
+            scanning = false
+            try { barcode = CapturedProductBarcode.validate(value); barcodeError = null; dirty = true }
+            catch (error: IllegalArgumentException) { barcodeError = error.message }
+        },
+        onDismiss = { scanning = false },
+    )
     if (discardDialog) AlertDialog(
         onDismissRequest = { discardDialog = false },
         title = { Text("Discard unsaved changes?") },

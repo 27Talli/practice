@@ -38,13 +38,14 @@ object EscPosRaster {
         val scale=width.toFloat()/plan.spec.width
         val output=ByteArrayOutputStream();output.write(byteArrayOf(0x1b,0x40))
         for((index,page) in plan.pages.withIndex()){
-            val bottom=(page.text.maxOfOrNull{it.baseline+it.size} ?: 30f)+22f
+            val bottom=maxOf(page.text.maxOfOrNull{it.baseline+it.size} ?: 30f,page.qr?.bottom ?: 0f)+22f
             val height=ceil(bottom*scale).toInt().coerceIn(64,2048)
             val bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888)
             try {
                 bitmap.eraseColor(Color.WHITE);val canvas=Canvas(bitmap);canvas.scale(scale,scale)
                 val paint=Paint(Paint.ANTI_ALIAS_FLAG).apply{color=Color.BLACK}
                 for(line in page.text){paint.textSize=line.size;paint.typeface=if(line.bold)Typeface.DEFAULT_BOLD else Typeface.DEFAULT;canvas.drawText(line.text,line.x,line.baseline,paint)}
+                page.qr?.let { ReceiptQr.draw(canvas,it) }
                 if(plan.pages.size>1){paint.textSize=8f;canvas.drawText("Page ${index+1} of ${plan.pages.size}",plan.spec.left,bottom-4f,paint)}
                 val pixels=IntArray(width*height);bitmap.getPixels(pixels,0,width,0,0,width,height)
                 for(top in 0 until height step 128){

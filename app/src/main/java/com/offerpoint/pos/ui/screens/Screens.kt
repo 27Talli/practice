@@ -163,9 +163,10 @@ internal fun DashboardScreen(
     onSwitch: () -> Unit,
     onTools: () -> Unit,
     onCustomize: () -> Unit,
+    staffActions: @Composable () -> Unit = {},
 ) {
     val preferences = com.offerpoint.pos.ui.theme.LocalWorkspacePreferences.current
-    PosScaffold(shop.name, "Your retail workspace", actions = { TextButton(onClick = onSettings) { Text("Settings") } }) { padding ->
+    PosScaffold(shop.name, "Your retail workspace", actions = { staffActions(); TextButton(onClick = onSettings) { Text("Settings") } }) { padding ->
         com.offerpoint.pos.ui.customize.CustomizedDashboard(shop, today, preferences, padding, onRetryToday,
             onOpen = { tile ->
                 when (tile) {

@@ -65,13 +65,14 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** Camera permission is requested only here, after the operator opens checkout's scan section. */
+/** Camera permission is requested only after the operator opens a scanning tool. */
 @Composable
 fun BarcodeCameraScanner(
     enabled: Boolean,
     onBarcode: (value: String, format: String) -> Unit,
     modifier: Modifier = Modifier,
     resetKey: Long = 0L,
+    receiptQrOnly: Boolean = false,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -93,11 +94,11 @@ fun BarcodeCameraScanner(
     }
 
     when {
-        !cameraPresent -> CameraMessage("Camera unavailable", "This device has no camera. Use the Products section to add items manually.", modifier)
+        !cameraPresent -> CameraMessage("Camera unavailable", "This device has no camera. You can enter the barcode or receipt number manually.", modifier)
         !permissionGranted -> Card(modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Scan product barcodes", style = MaterialTheme.typography.titleLarge)
-                Text("Allow camera access to point at a barcode and add its registered product to this shop’s cart. Images stay on this device.")
+                Text(if (receiptQrOnly) "Scan receipt QR" else "Scan product barcodes", style = MaterialTheme.typography.titleLarge)
+                Text("Allow camera access to read a code. Images are processed on this device and are not saved.")
                 if (permissionRequested) Text("Camera access is currently denied. You can allow it here or in Android app settings.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 val showRationale = activity != null && ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.CAMERA)
                 Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
@@ -116,12 +117,12 @@ fun BarcodeCameraScanner(
                 if (settingsError != null) Text(settingsError!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
         }
-        else -> CameraPreview(enabled, onBarcode, modifier, resetKey)
+        else -> CameraPreview(enabled, onBarcode, modifier, resetKey, receiptQrOnly)
     }
 }
 
 @Composable
-private fun CameraPreview(enabled: Boolean, onBarcode: (String, String) -> Unit, modifier: Modifier, resetKey: Long) {
+private fun CameraPreview(enabled: Boolean, onBarcode: (String, String) -> Unit, modifier: Modifier, resetKey: Long, receiptQrOnly: Boolean) {
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
     val mainExecutor = remember(context) { ContextCompat.getMainExecutor(context) }
@@ -171,11 +172,11 @@ private fun CameraPreview(enabled: Boolean, onBarcode: (String, String) -> Unit,
         }
     }
 
-    DisposableEffect(previewView, owner, retry) {
+    DisposableEffect(previewView, owner, retry, receiptQrOnly) {
         cameraError = null
         val disposed = AtomicBoolean(false)
         val executor = Executors.newSingleThreadExecutor { work -> Thread(work, "pos-barcode-analyzer").apply { isDaemon = true } }
-        val decoder = RetailBarcodeDecoder()
+        val decoder = RetailBarcodeDecoder(receiptQrOnly)
         val preview = Preview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
         val analysis = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)

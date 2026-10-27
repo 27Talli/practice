@@ -30,7 +30,7 @@ data class ReceiptPageSpec(val width: Int, val height: Int, val left: Float, val
 }
 
 data class ReceiptDrawText(val text: String, val x: Float, val baseline: Float, val size: Float, val bold: Boolean)
-data class ReceiptPage(val text: List<ReceiptDrawText>)
+data class ReceiptPage(val text: List<ReceiptDrawText>, val qr: ReceiptDrawQr? = null)
 data class ReceiptLayout(val spec: ReceiptPageSpec, val pages: List<ReceiptPage>)
 
 /** One layout engine for PDF export and Android printing. All prices arrive as exact formatted text. */
@@ -110,7 +110,16 @@ object ReceiptPaginator {
             }
             if (line.style == ReceiptLineStyle.TOTAL) y += 5f
         }
-        pages.add(ReceiptPage(current.toList()))
+        // Place one complete QR after the receipt content; never split or clip it across pages.
+        val modules = ReceiptQr.matrix(receipt.receiptNumber).width
+        val moduleSize = kotlin.math.floor(minOf(width, 120f) / modules).coerceAtLeast(1f)
+        val qrSide = modules * moduleSize
+        require(qrSide <= width && qrSide + 34f <= contentBottom - contentTop) { "Choose taller or wider paper for the receipt QR." }
+        if (y + qrSide + 34f > contentBottom) newPage()
+        y += 8f
+        draw("Receipt number QR", normalSize, false)
+        val qr = ReceiptDrawQr(receipt.receiptNumber, spec.left + (width - qrSide) / 2, y + 3f, moduleSize, modules)
+        pages.add(ReceiptPage(current.toList(), qr))
         return ReceiptLayout(spec, pages)
     }
 }

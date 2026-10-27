@@ -126,6 +126,10 @@ class RoomSalesRepository(
         dao.getSale(shopId, saleId)?.let { details(it) }
     }
 
+    override suspend fun findSaleByReceipt(shopId: Long, receiptNumber: String): SaleDetails? = database.withTransaction {
+        dao.findSaleByReceipt(shopId, receiptNumber)?.let { details(it) }
+    }
+
     override suspend fun findCompletedRequest(shopId: Long, requestId: String): SaleDetails? = database.withTransaction {
         dao.findSaleByRequest(requestId)?.takeIf {
             it.shopId == shopId && it.status == "COMPLETED" && it.completedAt != null

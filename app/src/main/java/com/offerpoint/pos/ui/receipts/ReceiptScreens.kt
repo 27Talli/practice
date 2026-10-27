@@ -122,6 +122,16 @@ private fun ReceiptContent(shop:Shop,vm:ReceiptDocumentViewModel,preferences:Rec
                             }
                         }
                     }
+                    item {
+                        Surface(color = Color.White, contentColor = Color.Black) {
+                            Column(Modifier.fillMaxWidth().padding(18.dp), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                ReceiptQrPreview(receipt.receiptNumber)
+                                Text(receipt.receiptNumber, style = MaterialTheme.typography.titleMedium)
+                                Text("Receipt number QR", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
                     item { Text("The PDF and print dialog wrap this saved record to the selected paper size.", style = MaterialTheme.typography.bodySmall) }
                 }
             }

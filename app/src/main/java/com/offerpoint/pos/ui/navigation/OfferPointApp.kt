@@ -11,6 +11,7 @@ import com.offerpoint.pos.domain.model.DashboardTile
 import com.offerpoint.pos.domain.model.WorkspacePreferencesSnapshot
 import com.offerpoint.pos.domain.repository.WorkspacePreferencesRepository
 import com.offerpoint.pos.ui.customize.*
+import com.offerpoint.pos.ui.staff.StaffToolsAction
 import com.offerpoint.pos.ui.theme.LocalWorkspacePreferences
 import androidx.compose.runtime.key
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -158,6 +159,7 @@ private fun OfferPointWorkspace(shopRepository: ShopRepository, productRepositor
                                     onSwitch = { nav.navigate("shops") },
                                     onTools = { nav.navigate("tools/${shop.id}") },
                                     onCustomize = { nav.navigate("customize/${shop.id}") },
+                                    staffActions = { StaffToolsAction(shop, productRepository, barcodeLabelRepository) },
                                 )
                             }
                         }
@@ -176,7 +178,9 @@ private fun OfferPointWorkspace(shopRepository: ShopRepository, productRepositor
                                         popUpTo(entry.destination.id) { inclusive = true }
                                         launchSingleTop = true
                                     }
-                                }, onBack = { if (vm.canLeaveCheckout()) nav.popBackStack() })
+                                }, onBack = { if (vm.canLeaveCheckout()) nav.popBackStack() },
+                                staffActions = { onVisible -> StaffToolsAction(shop, productRepository, barcodeLabelRepository,
+                                    cart = state.cart.map { it.requestLine() }, orderDiscount = state.orderDiscount, enabled = !state.locked, onVisibilityChanged = onVisible) })
                         }
                         composable("sales/{shopId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType })) { entry ->
                             val id = entry.arguments?.getLong("shopId") ?: return@composable
@@ -197,10 +201,10 @@ private fun OfferPointWorkspace(shopRepository: ShopRepository, productRepositor
                             val state by vm.state.collectAsStateWithLifecycle()
                             SaleDetailsScreen(shop, state, entry.arguments?.getBoolean("completed") == true, vm::load,
                                 onReceipt = { nav.navigate("receipt/$id/$saleId") },
-                                onReturn = { nav.navigate("refund/$id/$saleId") },
                                 onNewSale = {
                                     nav.navigate("checkout/$id") { popUpTo(entry.destination.id) { inclusive = true } }
-                                }, onBack = { nav.popBackStack() })
+                                }, onBack = { nav.popBackStack() },
+                                staffActions = { StaffToolsAction(shop, productRepository, barcodeLabelRepository, sale = state.sale, enabled = state.sale != null) })
                         }
                         composable("refund/{shopId}/{saleId}",arguments=listOf(navArgument("shopId"){type=NavType.LongType},navArgument("saleId"){type=NavType.LongType})){entry->
                             val id=entry.arguments?.getLong("shopId") ?: return@composable
@@ -213,9 +217,11 @@ private fun OfferPointWorkspace(shopRepository: ShopRepository, productRepositor
                         composable("refunds/{shopId}",arguments=listOf(navArgument("shopId"){type=NavType.LongType})){entry->
                             val id=entry.arguments?.getLong("shopId") ?: return@composable
                             val shop=appState.shops.firstOrNull{it.id==id} ?: return@composable
-                            var error by remember{mutableStateOf<String?>(null)}
-                            val rows by remember(id){refundRepository.observe(id).catch{e->error=e.message;emit(emptyList())}}.collectAsStateWithLifecycle(initialValue=emptyList())
-                            RefundHistoryScreen(shop,rows,error,{returnId->nav.navigate("refund-receipt/$id/$returnId")},{nav.popBackStack()})
+                            val vm: RefundHistoryViewModel = viewModel(entry, factory = viewModelFactory { initializer { RefundHistoryViewModel(refundRepository, salesRepository, shop, createSavedStateHandle()) } })
+                            val state by vm.state.collectAsStateWithLifecycle()
+                            RefundHistoryScreen(shop,state,vm::reference,vm::find,vm::scanned,
+                                onReturn={vm.state.value.sale?.let{sale->nav.navigate("refund/$id/${sale.summary.id}")}},onRetry=vm::retry,
+                                onOpen={returnId->nav.navigate("refund-receipt/$id/$returnId")},onBack={nav.popBackStack()})
                         }
                         composable("refund-receipt/{shopId}/{returnId}",arguments=listOf(navArgument("shopId"){type=NavType.LongType},navArgument("returnId"){type=NavType.LongType})){entry->
                             val id=entry.arguments?.getLong("shopId") ?: return@composable

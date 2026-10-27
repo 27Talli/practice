@@ -200,6 +200,9 @@ interface PosDao {
     @Query("SELECT * FROM sales WHERE shopId = :shopId AND id = :saleId AND status = 'COMPLETED' AND completedAt IS NOT NULL")
     suspend fun getSale(shopId: Long, saleId: Long): SaleEntity?
 
+    @Query("SELECT * FROM sales WHERE shopId = :shopId AND receiptNumber = :receiptNumber AND status = 'COMPLETED' AND completedAt IS NOT NULL LIMIT 1")
+    suspend fun findSaleByReceipt(shopId: Long, receiptNumber: String): SaleEntity?
+
     @Query("SELECT * FROM sale_items WHERE shopId = :shopId AND saleId = :saleId ORDER BY id")
     suspend fun getSaleItems(shopId: Long, saleId: Long): List<SaleItemEntity>
 

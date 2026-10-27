@@ -7,6 +7,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
@@ -143,6 +144,7 @@ class CheckoutUiTest {
             compose.onAllNodesWithText("Sale completed").fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithText("OP-S-000001", substring = true).assertExists()
+        compose.onNodeWithText("Return items / refund").assertDoesNotExist()
         runBlocking {
             assertEquals(2L, products.getProduct(1, productId)?.quantity)
             assertEquals(1, database.posDao().countSales())
@@ -170,6 +172,8 @@ class CheckoutUiTest {
         compose.onNodeWithText("Share receipt PDF").assertIsEnabled()
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Print receipt"))
         compose.onNodeWithText("Print receipt").assertIsEnabled()
+        compose.onNode(hasScrollAction()).performScrollToNode(androidx.compose.ui.test.hasContentDescription("Receipt QR: OP-S-000001"))
+        compose.onNodeWithContentDescription("Receipt QR: OP-S-000001").assertExists()
         compose.onNodeWithText("‹ Back").performClick()
         runBlocking {
             assertEquals(1, database.posDao().countSales())
@@ -182,9 +186,11 @@ class CheckoutUiTest {
         val refunds=RoomRefundRepository(database)
         compose.setContent { OfferPointApp(shops,products,inventory,sales,labels,RoomReceiptSettingsRepository(database),RoomBackupRepository(ApplicationProvider.getApplicationContext(),database,false),refunds,RoomExpenseRepository(database),RoomReportRepository(database),RoomSecurityRepository(database),workspace) }
         compose.waitUntil(15_000){compose.onAllNodesWithText("Your retail workspace").fetchSemanticsNodes().isNotEmpty()}
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Sales history"));compose.onNodeWithText("Sales history").performClick()
-        compose.waitUntil(15_000){compose.onAllNodesWithText("OP-S-000001").fetchSemanticsNodes().isNotEmpty()};compose.onNodeWithText("OP-S-000001").performClick()
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Return items / refund"));compose.onNodeWithText("Return items / refund").performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Returns & refunds"));compose.onNodeWithText("Returns & refunds").performClick()
+        compose.onNodeWithText("Original sale receipt number").performTextReplacement("OP-S-000001")
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Find original sale"));compose.onNodeWithText("Find original sale").performClick()
+        compose.waitUntil(15_000){compose.onAllNodesWithText("Original sale found").fetchSemanticsNodes().isNotEmpty()}
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Select items to return"));compose.onNodeWithText("Select items to return").performClick()
         compose.waitUntil(15_000){compose.onAllNodesWithText("Quantity to return").fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText("Quantity to return").performTextReplacement("1")
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Quantity to restock"));compose.onNodeWithText("Quantity to restock").performTextReplacement("1")
@@ -192,6 +198,8 @@ class CheckoutUiTest {
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Confirm cash refund"));compose.onNodeWithText("Confirm cash refund").assertIsEnabled().performClick()
         compose.waitUntil(15_000){compose.onAllNodesWithText("Receipt preview").fetchSemanticsNodes().isNotEmpty()}
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("CASH REFUND RECEIPT"));compose.onNodeWithText("CASH REFUND RECEIPT").assertExists()
+        compose.onNode(hasScrollAction()).performScrollToNode(androidx.compose.ui.test.hasContentDescription("Receipt QR: OP-R-000001"))
+        compose.onNodeWithContentDescription("Receipt QR: OP-R-000001").assertExists()
         runBlocking {assertEquals(1,refunds.observe(1).first().size);assertEquals(3L,products.getProduct(1,productId)?.quantity);assertEquals(1,database.posDao().countSales())}
     }
 
@@ -219,6 +227,52 @@ class CheckoutUiTest {
     private fun openCustomizableApp() {
         compose.setContent { OfferPointApp(shops,products,inventory,sales,labels,RoomReceiptSettingsRepository(database),RoomBackupRepository(ApplicationProvider.getApplicationContext(),database,false),RoomRefundRepository(database),RoomExpenseRepository(database),RoomReportRepository(database),RoomSecurityRepository(database),workspace) }
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Your retail workspace").fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    @Test fun cashierCanRevealPrivateProfitAndHideItWithoutChangingTheUnpaidCart() {
+        runBlocking { workspace.save(WorkspacePreferences(checkoutStart=CheckoutStart.PRODUCTS)) }
+        openCustomizableApp()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Checkout"));compose.onNodeWithText("Checkout").performClick()
+        compose.waitUntil(15_000){compose.onAllNodesWithText("+ Add").fetchSemanticsNodes().isNotEmpty()}
+        compose.onNodeWithText("+ Add").performClick();compose.onNodeWithText("Review cart",substring=true).performClick()
+        compose.onNodeWithText("Estimated sale gross profit").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Staff prices and profit").performClick()
+        compose.waitUntil(15_000){compose.onAllNodesWithText("Estimated sale gross profit").fetchSemanticsNodes().isNotEmpty()}
+        compose.onNodeWithText("Rs. 2.00",substring=true).assertExists()
+        compose.onNodeWithText("Purchase cost: Rs. 3.00",substring=true).assertExists()
+        compose.onNodeWithTag("staff-tools-list").performScrollToNode(hasTestTag("staff-price-product-$productId"))
+        compose.onNodeWithTag("staff-price-product-$productId").performClick()
+        compose.waitUntil(15_000){compose.onAllNodesWithText("Bought for: Rs. 3.00",substring=true).fetchSemanticsNodes().isNotEmpty()}
+        compose.onNodeWithText("Selling price: Rs. 5.00",substring=true).assertExists()
+        compose.onNodeWithText("Hide").performClick()
+        compose.onNodeWithText("Estimated sale gross profit").assertDoesNotExist()
+        compose.onNodeWithText("Bought for: Rs. 3.00",substring=true).assertDoesNotExist()
+        compose.onNodeWithText("Cart (1)").assertExists()
+        runBlocking{assertEquals(0,database.posDao().countSales());assertEquals(3L,products.getProduct(1,productId)?.quantity)}
+    }
+
+    @Test fun addingAProductCanOpenAndCancelBarcodeCaptureWithoutSavingAnything() {
+        openCustomizableApp()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Products"));compose.onNodeWithText("Products").performClick()
+        compose.onNodeWithText("+ Add").performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Scan existing barcode"));compose.onNodeWithText("Scan existing barcode").performClick()
+        compose.onNodeWithText("Cancel scanning").assertExists().performClick()
+        compose.onNodeWithText("Existing manufacturer barcode (optional)").assertExists()
+        runBlocking{assertEquals(1,products.observeProducts(1).first().size);assertEquals(0,database.posDao().countSales())}
+    }
+
+    @Test fun receiptScanningIsAvailableOnlyFromTheDedicatedReturnsSection() {
+        openCustomizableApp()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Returns & refunds"));compose.onNodeWithText("Returns & refunds").performClick()
+        compose.onNodeWithText("Scan receipt QR").performClick()
+        compose.onNodeWithText("This finds the saved sale",substring=true).assertExists()
+        compose.onNodeWithText("Cancel scanning").performClick()
+        compose.onNodeWithText("Original sale receipt number").performTextReplacement("FF-S-000001")
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Find original sale"));compose.onNodeWithText("Find original sale").performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Use an original sale receipt",substring=true))
+        compose.onNodeWithText("Use an original sale receipt",substring=true).assertExists()
+        compose.onNodeWithText("Select items to return").assertDoesNotExist()
+        runBlocking{assertEquals(0,RoomRefundRepository(database).observe(1).first().size);assertEquals(3L,products.getProduct(1,productId)?.quantity)}
     }
 
     private fun captureCustomization(name: String) {

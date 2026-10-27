@@ -6,7 +6,7 @@ import com.offerpoint.pos.domain.repository.BarcodeLabelRepository
 import com.offerpoint.pos.domain.repository.ProductRepository
 
 class LookupScannedProduct(private val products: ProductRepository, private val labels: BarcodeLabelRepository) {
-    suspend operator fun invoke(shopId: Long, value: String, format: String): ScannedProduct {
+    suspend operator fun invoke(shopId: Long, value: String, format: String, requireStock: Boolean = true): ScannedProduct {
         val raw = value.trim()
         if (raw.isEmpty() || raw.length > 256 || raw.any { it.isISOControl() }) {
             throw BarcodeLookupException("The barcode could not be read. Try scanning it again.")
@@ -29,7 +29,7 @@ class LookupScannedProduct(private val products: ProductRepository, private val 
         }
         val product = products.findProductForBarcode(shopId, match.first)
             ?: throw BarcodeLookupException("This product is not active in the selected shop. Check Products before selling it.")
-        if (product.quantity <= 0) throw BarcodeLookupException("${product.name} is out of stock.")
+        if (requireStock && product.quantity <= 0) throw BarcodeLookupException("${product.name} is out of stock.")
         return ScannedProduct(product, label)
     }
 }

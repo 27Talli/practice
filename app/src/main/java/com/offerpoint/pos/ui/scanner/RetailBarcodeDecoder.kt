@@ -67,10 +67,10 @@ fun copyLuminancePlane(
 }
 
 /** ZXing is bundled in the APK; no account, Google Play services, or model download is involved. */
-class RetailBarcodeDecoder {
+class RetailBarcodeDecoder(receiptQrOnly: Boolean = false) {
     private val reader = MultiFormatReader().apply {
         setHints(mapOf(
-            DecodeHintType.POSSIBLE_FORMATS to listOf(
+            DecodeHintType.POSSIBLE_FORMATS to if (receiptQrOnly) listOf(BarcodeFormat.QR_CODE) else listOf(
                 BarcodeFormat.CODE_128, BarcodeFormat.EAN_13, BarcodeFormat.EAN_8,
                 BarcodeFormat.UPC_A, BarcodeFormat.UPC_E, BarcodeFormat.CODE_39, BarcodeFormat.ITF,
             ),

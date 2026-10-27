@@ -38,6 +38,7 @@ object ReceiptPdfExporter {
                         paint.typeface = if (line.bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
                         page.canvas.drawText(line.text, line.x, line.baseline, paint)
                     }
+                    layout.pages[index].qr?.let { ReceiptQr.draw(page.canvas, it, checkCancelled) }
                     paint.textSize = 8f
                     paint.typeface = Typeface.DEFAULT
                     page.canvas.drawText("Page ${index + 1} of ${layout.pages.size}", spec.left, spec.height - spec.bottom - 3f, paint)

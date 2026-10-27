@@ -24,6 +24,23 @@ class ReceiptDatabaseTest {
     @Before fun before() = runBlocking { db = Room.databaseBuilder(context, PosDatabase::class.java, name).build(); RoomShopRepository(db, false).initialize() }
     @After fun after() { db.close(); context.deleteDatabase(name) }
 
+    @Test fun exactReceiptLookupAndProfitSurviveReopeningWithoutCrossingShopsOrWritingRecords() = runBlocking {
+        val products=RoomProductRepository(db);val sales=RoomSalesRepository(db)
+        val id=products.createProduct(1,ProductDraft("Lipstick","Cosmetics",manufacturerBarcode="0000123456789",purchaseCostPaise=300,sellingPricePaise=500,openingQuantity=4))
+        val sale=sales.completeSale(CheckoutRequest("receipt-qr-lookup",1,listOf(CheckoutLine(id,2,500,1)),99,1000))
+        products.updateProduct(1,id,ProductDraft("Lipstick","Cosmetics",manufacturerBarcode="0000123456789",purchaseCostPaise=999,sellingPricePaise=888))
+        val audits=db.posDao().getAudits().size
+        db.close();db=Room.databaseBuilder(context,PosDatabase::class.java,name).build()
+        val reopened=RoomSalesRepository(db)
+        assertEquals(sale,reopened.findSaleByReceipt(1,"OP-S-000001"))
+        assertNull(reopened.findSaleByReceipt(2,"OP-S-000001"))
+        assertNull(reopened.findSaleByReceipt(1,"OP-S-999999"))
+        assertNull(reopened.findSaleByReceipt(1,"OP-S-000001' OR 1=1--"))
+        assertEquals(300L,com.offerpoint.pos.domain.usecase.CalculateSaleProfit.saved(requireNotNull(reopened.findSaleByReceipt(1,"OP-S-000001"))).profitPaise)
+        assertEquals(audits,db.posDao().getAudits().size)
+        assertEquals(1,db.posDao().countSales());assertEquals(2L,RoomProductRepository(db).getProduct(1,id)?.quantity)
+    }
+
     @Test fun defaultsAreShopScopedAndSavedPreferencesSurviveDatabaseReopen() = runBlocking {
         val repo = RoomReceiptSettingsRepository(db)
         assertEquals(ReceiptSettings(1), repo.getSettings(1))
