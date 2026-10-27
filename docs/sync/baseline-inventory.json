@@ -1,0 +1,2455 @@
+{
+  "stage": "1-audit-only",
+  "checkpointCommit": "335808a9df7d59feeb05a0d2904a150a58d8988a",
+  "appVersion": "1.2.0-rc1",
+  "appVersionCode": 8,
+  "module": ":app",
+  "runtimeKotlinFiles": 82,
+  "dependencyVersions": {
+    "agp": "8.7.3",
+    "kotlin": "2.0.21",
+    "ksp": "2.0.21-1.0.28",
+    "composeBom": "2024.12.01",
+    "core": "1.15.0",
+    "activity": "1.9.3",
+    "lifecycle": "2.8.7",
+    "navigation": "2.8.5",
+    "room": "2.6.1",
+    "coroutines": "1.9.0",
+    "junit": "4.13.2",
+    "androidxTestCore": "1.6.1",
+    "androidxTestRunner": "1.6.2",
+    "androidxTestJunit": "1.2.1",
+    "espresso": "3.6.1",
+    "cameraX": "1.4.1",
+    "zxing": "3.5.3"
+  },
+  "schemas": [
+    {
+      "version": 1,
+      "identityHash": "3245d319c793c07566c40f728d35e7ad",
+      "sha256": "396a3b406baf3821ed00ef8e837d778a47dc1ccdeeba4ad2e4805275e9f7315f",
+      "tables": [
+        "shops",
+        "products",
+        "product_barcodes",
+        "shop_products",
+        "inventory",
+        "stock_movements",
+        "sales",
+        "sale_items",
+        "returns",
+        "return_items",
+        "expenses",
+        "audit_events",
+        "app_settings",
+        "sku_sequences"
+      ]
+    },
+    {
+      "version": 2,
+      "identityHash": "826eee387adaaefe38edcd276e5c2b27",
+      "sha256": "df63fd8ce019116c3c3b8e94220b307b3a15a7e4a44721552a9dc22d47a848ef",
+      "tables": [
+        "shops",
+        "products",
+        "product_barcodes",
+        "shop_products",
+        "inventory",
+        "stock_movements",
+        "sales",
+        "sale_items",
+        "returns",
+        "return_items",
+        "expenses",
+        "audit_events",
+        "app_settings",
+        "sku_sequences",
+        "sales_sequences"
+      ]
+    },
+    {
+      "version": 3,
+      "identityHash": "3625be07584e0b6f5aa5738cb6e1c78d",
+      "sha256": "a074705348ee48d07ca296c49faa138e94d7118f0b974ea8bf2dbd0ad5a4913e",
+      "tables": [
+        "shops",
+        "products",
+        "product_barcodes",
+        "shop_products",
+        "inventory",
+        "stock_movements",
+        "sales",
+        "sale_items",
+        "returns",
+        "return_items",
+        "expenses",
+        "audit_events",
+        "app_settings",
+        "sku_sequences",
+        "sales_sequences",
+        "cost_code_settings",
+        "product_labels"
+      ]
+    },
+    {
+      "version": 4,
+      "identityHash": "4231f8771de042b47852de3cc2d4b5a2",
+      "sha256": "4e2265c489a4dd66f629a62fe0cd229c3e40454e7a9f9d9a2103203723dbab19",
+      "tables": [
+        "shops",
+        "products",
+        "product_barcodes",
+        "shop_products",
+        "inventory",
+        "stock_movements",
+        "sales",
+        "sale_items",
+        "returns",
+        "return_items",
+        "expenses",
+        "audit_events",
+        "app_settings",
+        "sku_sequences",
+        "sales_sequences",
+        "cost_code_settings",
+        "product_labels",
+        "receipt_settings"
+      ]
+    },
+    {
+      "version": 5,
+      "identityHash": "7ce8b4eb408ca66dc420234427fca2b6",
+      "sha256": "279ceed4d5a4c16a114559746161cc933b2265d532d0127e50edc5b469027ab9",
+      "tables": [
+        "shops",
+        "products",
+        "product_barcodes",
+        "shop_products",
+        "inventory",
+        "stock_movements",
+        "sales",
+        "sale_items",
+        "returns",
+        "return_items",
+        "expenses",
+        "audit_events",
+        "app_settings",
+        "sku_sequences",
+        "sales_sequences",
+        "cost_code_settings",
+        "product_labels",
+        "receipt_settings"
+      ]
+    },
+    {
+      "version": 6,
+      "identityHash": "bff6d68e4d299f12ef77815f26eecf8a",
+      "sha256": "027bd3a6530a8697dc00dd34e0793fea7b4ce9b5d1ae9b27d007d77bfa8e72f2",
+      "tables": [
+        "shops",
+        "products",
+        "product_barcodes",
+        "shop_products",
+        "inventory",
+        "stock_movements",
+        "sales",
+        "sale_items",
+        "returns",
+        "return_items",
+        "expenses",
+        "audit_events",
+        "app_settings",
+        "sku_sequences",
+        "sales_sequences",
+        "cost_code_settings",
+        "product_labels",
+        "receipt_settings",
+        "return_sequences",
+        "owner_security"
+      ]
+    }
+  ],
+  "currentTables": [
+    {
+      "tableName": "shops",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `code` TEXT NOT NULL, `name` TEXT NOT NULL, `address` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "columnName": "id",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "code",
+          "columnName": "code",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "name",
+          "columnName": "name",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "address",
+          "columnName": "address",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "createdAt",
+          "columnName": "createdAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "updatedAt",
+          "columnName": "updatedAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": false,
+        "columnNames": [
+          "id"
+        ]
+      },
+      "indices": [
+        {
+          "name": "index_shops_code",
+          "unique": true,
+          "columnNames": [
+            "code"
+          ],
+          "orders": [],
+          "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_shops_code` ON `${TABLE_NAME}` (`code`)"
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "tableName": "products",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sku` TEXT NOT NULL, `name` TEXT NOT NULL, `category` TEXT NOT NULL, `variant` TEXT NOT NULL, `isActive` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "columnName": "id",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "sku",
+          "columnName": "sku",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "name",
+          "columnName": "name",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "category",
+          "columnName": "category",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "variant",
+          "columnName": "variant",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "isActive",
+          "columnName": "isActive",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "createdAt",
+          "columnName": "createdAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "updatedAt",
+          "columnName": "updatedAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": true,
+        "columnNames": [
+          "id"
+        ]
+      },
+      "indices": [
+        {
+          "name": "index_products_sku",
+          "unique": true,
+          "columnNames": [
+            "sku"
+          ],
+          "orders": [],
+          "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_products_sku` ON `${TABLE_NAME}` (`sku`)"
+        },
+        {
+          "name": "index_products_name",
+          "unique": false,
+          "columnNames": [
+            "name"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_products_name` ON `${TABLE_NAME}` (`name`)"
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "tableName": "product_barcodes",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `productId` INTEGER NOT NULL, `value` TEXT NOT NULL, `kind` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`productId`) REFERENCES `products`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "columnName": "id",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "productId",
+          "columnName": "productId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "value",
+          "columnName": "value",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "kind",
+          "columnName": "kind",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "createdAt",
+          "columnName": "createdAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": true,
+        "columnNames": [
+          "id"
+        ]
+      },
+      "indices": [
+        {
+          "name": "index_product_barcodes_productId",
+          "unique": false,
+          "columnNames": [
+            "productId"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_product_barcodes_productId` ON `${TABLE_NAME}` (`productId`)"
+        },
+        {
+          "name": "index_product_barcodes_value",
+          "unique": true,
+          "columnNames": [
+            "value"
+          ],
+          "orders": [],
+          "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_product_barcodes_value` ON `${TABLE_NAME}` (`value`)"
+        },
+        {
+          "name": "index_product_barcodes_productId_kind",
+          "unique": false,
+          "columnNames": [
+            "productId",
+            "kind"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_product_barcodes_productId_kind` ON `${TABLE_NAME}` (`productId`, `kind`)"
+        },
+        {
+          "name": "index_product_barcodes_id_productId",
+          "unique": true,
+          "columnNames": [
+            "id",
+            "productId"
+          ],
+          "orders": [],
+          "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_product_barcodes_id_productId` ON `${TABLE_NAME}` (`id`, `productId`)"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "table": "products",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "productId"
+          ],
+          "referencedColumns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "tableName": "shop_products",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`shopId` INTEGER NOT NULL, `productId` INTEGER NOT NULL, `purchaseCostPaise` INTEGER NOT NULL, `sellingPricePaise` INTEGER NOT NULL, `isActive` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `reorderLevel` INTEGER NOT NULL DEFAULT 5, PRIMARY KEY(`shopId`, `productId`), FOREIGN KEY(`shopId`) REFERENCES `shops`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`productId`) REFERENCES `products`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+      "fields": [
+        {
+          "fieldPath": "shopId",
+          "columnName": "shopId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "productId",
+          "columnName": "productId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "purchaseCostPaise",
+          "columnName": "purchaseCostPaise",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "sellingPricePaise",
+          "columnName": "sellingPricePaise",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "isActive",
+          "columnName": "isActive",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "createdAt",
+          "columnName": "createdAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "updatedAt",
+          "columnName": "updatedAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "reorderLevel",
+          "columnName": "reorderLevel",
+          "affinity": "INTEGER",
+          "notNull": true,
+          "defaultValue": "5"
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": false,
+        "columnNames": [
+          "shopId",
+          "productId"
+        ]
+      },
+      "indices": [
+        {
+          "name": "index_shop_products_productId",
+          "unique": false,
+          "columnNames": [
+            "productId"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_shop_products_productId` ON `${TABLE_NAME}` (`productId`)"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "table": "shops",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "shopId"
+          ],
+          "referencedColumns": [
+            "id"
+          ]
+        },
+        {
+          "table": "products",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "productId"
+          ],
+          "referencedColumns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "tableName": "inventory",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`shopId` INTEGER NOT NULL, `productId` INTEGER NOT NULL, `quantity` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`shopId`, `productId`), FOREIGN KEY(`shopId`, `productId`) REFERENCES `shop_products`(`shopId`, `productId`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+      "fields": [
+        {
+          "fieldPath": "shopId",
+          "columnName": "shopId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "productId",
+          "columnName": "productId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "quantity",
+          "columnName": "quantity",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "updatedAt",
+          "columnName": "updatedAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": false,
+        "columnNames": [
+          "shopId",
+          "productId"
+        ]
+      },
+      "indices": [],
+      "foreignKeys": [
+        {
+          "table": "shop_products",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "shopId",
+            "productId"
+          ],
+          "referencedColumns": [
+            "shopId",
+            "productId"
+          ]
+        }
+      ]
+    },
+    {
+      "tableName": "stock_movements",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `shopId` INTEGER NOT NULL, `productId` INTEGER NOT NULL, `delta` INTEGER NOT NULL, `quantityAfter` INTEGER NOT NULL, `type` TEXT NOT NULL, `reason` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `saleItemId` INTEGER, `returnItemId` INTEGER, FOREIGN KEY(`shopId`, `productId`) REFERENCES `shop_products`(`shopId`, `productId`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`saleItemId`, `shopId`, `productId`) REFERENCES `sale_items`(`id`, `shopId`, `productId`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`returnItemId`, `shopId`, `productId`) REFERENCES `return_items`(`id`, `shopId`, `productId`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "columnName": "id",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "shopId",
+          "columnName": "shopId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "productId",
+          "columnName": "productId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "delta",
+          "columnName": "delta",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "quantityAfter",
+          "columnName": "quantityAfter",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "type",
+          "columnName": "type",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "reason",
+          "columnName": "reason",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "createdAt",
+          "columnName": "createdAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "saleItemId",
+          "columnName": "saleItemId",
+          "affinity": "INTEGER",
+          "notNull": false
+        },
+        {
+          "fieldPath": "returnItemId",
+          "columnName": "returnItemId",
+          "affinity": "INTEGER",
+          "notNull": false
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": true,
+        "columnNames": [
+          "id"
+        ]
+      },
+      "indices": [
+        {
+          "name": "index_stock_movements_shopId_productId_createdAt",
+          "unique": false,
+          "columnNames": [
+            "shopId",
+            "productId",
+            "createdAt"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_stock_movements_shopId_productId_createdAt` ON `${TABLE_NAME}` (`shopId`, `productId`, `createdAt`)"
+        },
+        {
+          "name": "index_stock_movements_saleItemId_shopId_productId",
+          "unique": false,
+          "columnNames": [
+            "saleItemId",
+            "shopId",
+            "productId"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_stock_movements_saleItemId_shopId_productId` ON `${TABLE_NAME}` (`saleItemId`, `shopId`, `productId`)"
+        },
+        {
+          "name": "index_stock_movements_returnItemId_shopId_productId",
+          "unique": false,
+          "columnNames": [
+            "returnItemId",
+            "shopId",
+            "productId"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_stock_movements_returnItemId_shopId_productId` ON `${TABLE_NAME}` (`returnItemId`, `shopId`, `productId`)"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "table": "shop_products",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "shopId",
+            "productId"
+          ],
+          "referencedColumns": [
+            "shopId",
+            "productId"
+          ]
+        },
+        {
+          "table": "sale_items",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "saleItemId",
+            "shopId",
+            "productId"
+          ],
+          "referencedColumns": [
+            "id",
+            "shopId",
+            "productId"
+          ]
+        },
+        {
+          "table": "return_items",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "returnItemId",
+            "shopId",
+            "productId"
+          ],
+          "referencedColumns": [
+            "id",
+            "shopId",
+            "productId"
+          ]
+        }
+      ]
+    },
+    {
+      "tableName": "sales",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `shopId` INTEGER NOT NULL, `receiptNumber` TEXT NOT NULL, `status` TEXT NOT NULL, `subtotalPaise` INTEGER NOT NULL, `discountPaise` INTEGER NOT NULL, `totalPaise` INTEGER NOT NULL, `amountPaidPaise` INTEGER NOT NULL, `changePaise` INTEGER NOT NULL, `paymentMethod` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `completedAt` INTEGER, `updatedAt` INTEGER NOT NULL, `checkoutRequestId` TEXT DEFAULT NULL, `requestFingerprint` TEXT DEFAULT NULL, `orderDiscountPaise` INTEGER NOT NULL DEFAULT 0, FOREIGN KEY(`shopId`) REFERENCES `shops`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "columnName": "id",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "shopId",
+          "columnName": "shopId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "receiptNumber",
+          "columnName": "receiptNumber",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "status",
+          "columnName": "status",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "subtotalPaise",
+          "columnName": "subtotalPaise",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "discountPaise",
+          "columnName": "discountPaise",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "totalPaise",
+          "columnName": "totalPaise",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "amountPaidPaise",
+          "columnName": "amountPaidPaise",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "changePaise",
+          "columnName": "changePaise",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "paymentMethod",
+          "columnName": "paymentMethod",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "createdAt",
+          "columnName": "createdAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "completedAt",
+          "columnName": "completedAt",
+          "affinity": "INTEGER",
+          "notNull": false
+        },
+        {
+          "fieldPath": "updatedAt",
+          "columnName": "updatedAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "checkoutRequestId",
+          "columnName": "checkoutRequestId",
+          "affinity": "TEXT",
+          "notNull": false,
+          "defaultValue": "NULL"
+        },
+        {
+          "fieldPath": "requestFingerprint",
+          "columnName": "requestFingerprint",
+          "affinity": "TEXT",
+          "notNull": false,
+          "defaultValue": "NULL"
+        },
+        {
+          "fieldPath": "orderDiscountPaise",
+          "columnName": "orderDiscountPaise",
+          "affinity": "INTEGER",
+          "notNull": true,
+          "defaultValue": "0"
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": true,
+        "columnNames": [
+          "id"
+        ]
+      },
+      "indices": [
+        {
+          "name": "index_sales_id_shopId",
+          "unique": true,
+          "columnNames": [
+            "id",
+            "shopId"
+          ],
+          "orders": [],
+          "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_sales_id_shopId` ON `${TABLE_NAME}` (`id`, `shopId`)"
+        },
+        {
+          "name": "index_sales_shopId_receiptNumber",
+          "unique": true,
+          "columnNames": [
+            "shopId",
+            "receiptNumber"
+          ],
+          "orders": [],
+          "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_sales_shopId_receiptNumber` ON `${TABLE_NAME}` (`shopId`, `receiptNumber`)"
+        },
+        {
+          "name": "index_sales_shopId_createdAt",
+          "unique": false,
+          "columnNames": [
+            "shopId",
+            "createdAt"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_sales_shopId_createdAt` ON `${TABLE_NAME}` (`shopId`, `createdAt`)"
+        },
+        {
+          "name": "index_sales_checkoutRequestId",
+          "unique": true,
+          "columnNames": [
+            "checkoutRequestId"
+          ],
+          "orders": [],
+          "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_sales_checkoutRequestId` ON `${TABLE_NAME}` (`checkoutRequestId`)"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "table": "shops",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "shopId"
+          ],
+          "referencedColumns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "tableName": "sale_items",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `saleId` INTEGER NOT NULL, `shopId` INTEGER NOT NULL, `productId` INTEGER NOT NULL, `skuSnapshot` TEXT NOT NULL, `nameSnapshot` TEXT NOT NULL, `variantSnapshot` TEXT NOT NULL, `barcodeSnapshot` TEXT, `quantity` INTEGER NOT NULL, `unitPricePaise` INTEGER NOT NULL, `unitCostPaise` INTEGER NOT NULL, `discountPaise` INTEGER NOT NULL, `lineTotalPaise` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `categorySnapshot` TEXT NOT NULL DEFAULT '', FOREIGN KEY(`saleId`, `shopId`) REFERENCES `sales`(`id`, `shopId`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`shopId`, `productId`) REFERENCES `shop_products`(`shopId`, `productId`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "columnName": "id",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "saleId",
+          "columnName": "saleId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "shopId",
+          "columnName": "shopId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "productId",
+          "columnName": "productId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "skuSnapshot",
+          "columnName": "skuSnapshot",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "nameSnapshot",
+          "columnName": "nameSnapshot",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "variantSnapshot",
+          "columnName": "variantSnapshot",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "barcodeSnapshot",
+          "columnName": "barcodeSnapshot",
+          "affinity": "TEXT",
+          "notNull": false
+        },
+        {
+          "fieldPath": "quantity",
+          "columnName": "quantity",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "unitPricePaise",
+          "columnName": "unitPricePaise",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "unitCostPaise",
+          "columnName": "unitCostPaise",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "discountPaise",
+          "columnName": "discountPaise",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "lineTotalPaise",
+          "columnName": "lineTotalPaise",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "createdAt",
+          "columnName": "createdAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "categorySnapshot",
+          "columnName": "categorySnapshot",
+          "affinity": "TEXT",
+          "notNull": true,
+          "defaultValue": "''"
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": true,
+        "columnNames": [
+          "id"
+        ]
+      },
+      "indices": [
+        {
+          "name": "index_sale_items_saleId_shopId",
+          "unique": false,
+          "columnNames": [
+            "saleId",
+            "shopId"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_sale_items_saleId_shopId` ON `${TABLE_NAME}` (`saleId`, `shopId`)"
+        },
+        {
+          "name": "index_sale_items_shopId_productId",
+          "unique": false,
+          "columnNames": [
+            "shopId",
+            "productId"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_sale_items_shopId_productId` ON `${TABLE_NAME}` (`shopId`, `productId`)"
+        },
+        {
+          "name": "index_sale_items_id_saleId_shopId_productId",
+          "unique": true,
+          "columnNames": [
+            "id",
+            "saleId",
+            "shopId",
+            "productId"
+          ],
+          "orders": [],
+          "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_sale_items_id_saleId_shopId_productId` ON `${TABLE_NAME}` (`id`, `saleId`, `shopId`, `productId`)"
+        },
+        {
+          "name": "index_sale_items_id_shopId_productId",
+          "unique": true,
+          "columnNames": [
+            "id",
+            "shopId",
+            "productId"
+          ],
+          "orders": [],
+          "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_sale_items_id_shopId_productId` ON `${TABLE_NAME}` (`id`, `shopId`, `productId`)"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "table": "sales",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "saleId",
+            "shopId"
+          ],
+          "referencedColumns": [
+            "id",
+            "shopId"
+          ]
+        },
+        {
+          "table": "shop_products",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "shopId",
+            "productId"
+          ],
+          "referencedColumns": [
+            "shopId",
+            "productId"
+          ]
+        }
+      ]
+    },
+    {
+      "tableName": "returns",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `saleId` INTEGER NOT NULL, `shopId` INTEGER NOT NULL, `reason` TEXT NOT NULL, `refundPaise` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `receiptNumber` TEXT DEFAULT NULL, `requestId` TEXT DEFAULT NULL, `requestFingerprint` TEXT DEFAULT NULL, FOREIGN KEY(`saleId`, `shopId`) REFERENCES `sales`(`id`, `shopId`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "columnName": "id",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "saleId",
+          "columnName": "saleId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "shopId",
+          "columnName": "shopId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "reason",
+          "columnName": "reason",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "refundPaise",
+          "columnName": "refundPaise",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "createdAt",
+          "columnName": "createdAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "receiptNumber",
+          "columnName": "receiptNumber",
+          "affinity": "TEXT",
+          "notNull": false,
+          "defaultValue": "NULL"
+        },
+        {
+          "fieldPath": "requestId",
+          "columnName": "requestId",
+          "affinity": "TEXT",
+          "notNull": false,
+          "defaultValue": "NULL"
+        },
+        {
+          "fieldPath": "requestFingerprint",
+          "columnName": "requestFingerprint",
+          "affinity": "TEXT",
+          "notNull": false,
+          "defaultValue": "NULL"
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": true,
+        "columnNames": [
+          "id"
+        ]
+      },
+      "indices": [
+        {
+          "name": "index_returns_saleId_shopId",
+          "unique": false,
+          "columnNames": [
+            "saleId",
+            "shopId"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_returns_saleId_shopId` ON `${TABLE_NAME}` (`saleId`, `shopId`)"
+        },
+        {
+          "name": "index_returns_id_saleId_shopId",
+          "unique": true,
+          "columnNames": [
+            "id",
+            "saleId",
+            "shopId"
+          ],
+          "orders": [],
+          "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_returns_id_saleId_shopId` ON `${TABLE_NAME}` (`id`, `saleId`, `shopId`)"
+        },
+        {
+          "name": "index_returns_shopId_createdAt",
+          "unique": false,
+          "columnNames": [
+            "shopId",
+            "createdAt"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_returns_shopId_createdAt` ON `${TABLE_NAME}` (`shopId`, `createdAt`)"
+        },
+        {
+          "name": "index_returns_requestId",
+          "unique": true,
+          "columnNames": [
+            "requestId"
+          ],
+          "orders": [],
+          "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_returns_requestId` ON `${TABLE_NAME}` (`requestId`)"
+        },
+        {
+          "name": "index_returns_shopId_receiptNumber",
+          "unique": true,
+          "columnNames": [
+            "shopId",
+            "receiptNumber"
+          ],
+          "orders": [],
+          "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_returns_shopId_receiptNumber` ON `${TABLE_NAME}` (`shopId`, `receiptNumber`)"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "table": "sales",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "saleId",
+            "shopId"
+          ],
+          "referencedColumns": [
+            "id",
+            "shopId"
+          ]
+        }
+      ]
+    },
+    {
+      "tableName": "return_items",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `returnId` INTEGER NOT NULL, `saleId` INTEGER NOT NULL, `shopId` INTEGER NOT NULL, `saleItemId` INTEGER NOT NULL, `productId` INTEGER NOT NULL, `quantity` INTEGER NOT NULL, `restockQuantity` INTEGER NOT NULL, `unitRefundPaise` INTEGER NOT NULL, `refundPaise` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`returnId`, `saleId`, `shopId`) REFERENCES `returns`(`id`, `saleId`, `shopId`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`saleItemId`, `saleId`, `shopId`, `productId`) REFERENCES `sale_items`(`id`, `saleId`, `shopId`, `productId`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "columnName": "id",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "returnId",
+          "columnName": "returnId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "saleId",
+          "columnName": "saleId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "shopId",
+          "columnName": "shopId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "saleItemId",
+          "columnName": "saleItemId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "productId",
+          "columnName": "productId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "quantity",
+          "columnName": "quantity",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "restockQuantity",
+          "columnName": "restockQuantity",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "unitRefundPaise",
+          "columnName": "unitRefundPaise",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "refundPaise",
+          "columnName": "refundPaise",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "createdAt",
+          "columnName": "createdAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": true,
+        "columnNames": [
+          "id"
+        ]
+      },
+      "indices": [
+        {
+          "name": "index_return_items_returnId_saleId_shopId",
+          "unique": false,
+          "columnNames": [
+            "returnId",
+            "saleId",
+            "shopId"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_return_items_returnId_saleId_shopId` ON `${TABLE_NAME}` (`returnId`, `saleId`, `shopId`)"
+        },
+        {
+          "name": "index_return_items_saleItemId_saleId_shopId_productId",
+          "unique": false,
+          "columnNames": [
+            "saleItemId",
+            "saleId",
+            "shopId",
+            "productId"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_return_items_saleItemId_saleId_shopId_productId` ON `${TABLE_NAME}` (`saleItemId`, `saleId`, `shopId`, `productId`)"
+        },
+        {
+          "name": "index_return_items_id_shopId_productId",
+          "unique": true,
+          "columnNames": [
+            "id",
+            "shopId",
+            "productId"
+          ],
+          "orders": [],
+          "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_return_items_id_shopId_productId` ON `${TABLE_NAME}` (`id`, `shopId`, `productId`)"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "table": "returns",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "returnId",
+            "saleId",
+            "shopId"
+          ],
+          "referencedColumns": [
+            "id",
+            "saleId",
+            "shopId"
+          ]
+        },
+        {
+          "table": "sale_items",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "saleItemId",
+            "saleId",
+            "shopId",
+            "productId"
+          ],
+          "referencedColumns": [
+            "id",
+            "saleId",
+            "shopId",
+            "productId"
+          ]
+        }
+      ]
+    },
+    {
+      "tableName": "expenses",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `shopId` INTEGER NOT NULL, `amountPaise` INTEGER NOT NULL, `category` TEXT NOT NULL, `description` TEXT NOT NULL, `incurredAt` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `requestId` TEXT DEFAULT NULL, `requestFingerprint` TEXT DEFAULT NULL, `isVoided` INTEGER NOT NULL DEFAULT 0, `voidReason` TEXT DEFAULT NULL, `voidedAt` INTEGER DEFAULT NULL, FOREIGN KEY(`shopId`) REFERENCES `shops`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "columnName": "id",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "shopId",
+          "columnName": "shopId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "amountPaise",
+          "columnName": "amountPaise",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "category",
+          "columnName": "category",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "description",
+          "columnName": "description",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "incurredAt",
+          "columnName": "incurredAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "createdAt",
+          "columnName": "createdAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "updatedAt",
+          "columnName": "updatedAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "requestId",
+          "columnName": "requestId",
+          "affinity": "TEXT",
+          "notNull": false,
+          "defaultValue": "NULL"
+        },
+        {
+          "fieldPath": "requestFingerprint",
+          "columnName": "requestFingerprint",
+          "affinity": "TEXT",
+          "notNull": false,
+          "defaultValue": "NULL"
+        },
+        {
+          "fieldPath": "isVoided",
+          "columnName": "isVoided",
+          "affinity": "INTEGER",
+          "notNull": true,
+          "defaultValue": "0"
+        },
+        {
+          "fieldPath": "voidReason",
+          "columnName": "voidReason",
+          "affinity": "TEXT",
+          "notNull": false,
+          "defaultValue": "NULL"
+        },
+        {
+          "fieldPath": "voidedAt",
+          "columnName": "voidedAt",
+          "affinity": "INTEGER",
+          "notNull": false,
+          "defaultValue": "NULL"
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": true,
+        "columnNames": [
+          "id"
+        ]
+      },
+      "indices": [
+        {
+          "name": "index_expenses_shopId_incurredAt",
+          "unique": false,
+          "columnNames": [
+            "shopId",
+            "incurredAt"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_expenses_shopId_incurredAt` ON `${TABLE_NAME}` (`shopId`, `incurredAt`)"
+        },
+        {
+          "name": "index_expenses_requestId",
+          "unique": true,
+          "columnNames": [
+            "requestId"
+          ],
+          "orders": [],
+          "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_expenses_requestId` ON `${TABLE_NAME}` (`requestId`)"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "table": "shops",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "shopId"
+          ],
+          "referencedColumns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "tableName": "audit_events",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `entityType` TEXT NOT NULL, `entityId` INTEGER NOT NULL, `shopId` INTEGER, `action` TEXT NOT NULL, `beforeValue` TEXT, `afterValue` TEXT, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`shopId`) REFERENCES `shops`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "columnName": "id",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "entityType",
+          "columnName": "entityType",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "entityId",
+          "columnName": "entityId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "shopId",
+          "columnName": "shopId",
+          "affinity": "INTEGER",
+          "notNull": false
+        },
+        {
+          "fieldPath": "action",
+          "columnName": "action",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "beforeValue",
+          "columnName": "beforeValue",
+          "affinity": "TEXT",
+          "notNull": false
+        },
+        {
+          "fieldPath": "afterValue",
+          "columnName": "afterValue",
+          "affinity": "TEXT",
+          "notNull": false
+        },
+        {
+          "fieldPath": "createdAt",
+          "columnName": "createdAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": true,
+        "columnNames": [
+          "id"
+        ]
+      },
+      "indices": [
+        {
+          "name": "index_audit_events_shopId",
+          "unique": false,
+          "columnNames": [
+            "shopId"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_audit_events_shopId` ON `${TABLE_NAME}` (`shopId`)"
+        },
+        {
+          "name": "index_audit_events_entityType_entityId_createdAt",
+          "unique": false,
+          "columnNames": [
+            "entityType",
+            "entityId",
+            "createdAt"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_audit_events_entityType_entityId_createdAt` ON `${TABLE_NAME}` (`entityType`, `entityId`, `createdAt`)"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "table": "shops",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "shopId"
+          ],
+          "referencedColumns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "tableName": "app_settings",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `selectedShopId` INTEGER, `demoSeeded` INTEGER NOT NULL, `dataGeneration` TEXT NOT NULL DEFAULT '', PRIMARY KEY(`id`), FOREIGN KEY(`selectedShopId`) REFERENCES `shops`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "columnName": "id",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "selectedShopId",
+          "columnName": "selectedShopId",
+          "affinity": "INTEGER",
+          "notNull": false
+        },
+        {
+          "fieldPath": "demoSeeded",
+          "columnName": "demoSeeded",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "dataGeneration",
+          "columnName": "dataGeneration",
+          "affinity": "TEXT",
+          "notNull": true,
+          "defaultValue": "''"
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": false,
+        "columnNames": [
+          "id"
+        ]
+      },
+      "indices": [
+        {
+          "name": "index_app_settings_selectedShopId",
+          "unique": false,
+          "columnNames": [
+            "selectedShopId"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_app_settings_selectedShopId` ON `${TABLE_NAME}` (`selectedShopId`)"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "table": "shops",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "selectedShopId"
+          ],
+          "referencedColumns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "tableName": "sku_sequences",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`prefix` TEXT NOT NULL, `nextValue` INTEGER NOT NULL, PRIMARY KEY(`prefix`))",
+      "fields": [
+        {
+          "fieldPath": "prefix",
+          "columnName": "prefix",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "nextValue",
+          "columnName": "nextValue",
+          "affinity": "INTEGER",
+          "notNull": true
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": false,
+        "columnNames": [
+          "prefix"
+        ]
+      },
+      "indices": [],
+      "foreignKeys": []
+    },
+    {
+      "tableName": "sales_sequences",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`shopId` INTEGER NOT NULL, `nextValue` INTEGER NOT NULL, PRIMARY KEY(`shopId`), FOREIGN KEY(`shopId`) REFERENCES `shops`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+      "fields": [
+        {
+          "fieldPath": "shopId",
+          "columnName": "shopId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "nextValue",
+          "columnName": "nextValue",
+          "affinity": "INTEGER",
+          "notNull": true
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": false,
+        "columnNames": [
+          "shopId"
+        ]
+      },
+      "indices": [],
+      "foreignKeys": [
+        {
+          "table": "shops",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "shopId"
+          ],
+          "referencedColumns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "tableName": "cost_code_settings",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`shopId` INTEGER NOT NULL, `alphabet` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`shopId`), FOREIGN KEY(`shopId`) REFERENCES `shops`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+      "fields": [
+        {
+          "fieldPath": "shopId",
+          "columnName": "shopId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "alphabet",
+          "columnName": "alphabet",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "createdAt",
+          "columnName": "createdAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "updatedAt",
+          "columnName": "updatedAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": false,
+        "columnNames": [
+          "shopId"
+        ]
+      },
+      "indices": [],
+      "foreignKeys": [
+        {
+          "table": "shops",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "shopId"
+          ],
+          "referencedColumns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "tableName": "product_labels",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`barcodeId` INTEGER NOT NULL, `shopId` INTEGER NOT NULL, `productId` INTEGER NOT NULL, `skuSnapshot` TEXT NOT NULL, `nameSnapshot` TEXT NOT NULL, `variantSnapshot` TEXT NOT NULL, `purchaseCostPaise` INTEGER NOT NULL, `costCode` TEXT NOT NULL, `alphabetSnapshot` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`barcodeId`), FOREIGN KEY(`barcodeId`, `productId`) REFERENCES `product_barcodes`(`id`, `productId`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`shopId`, `productId`) REFERENCES `shop_products`(`shopId`, `productId`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+      "fields": [
+        {
+          "fieldPath": "barcodeId",
+          "columnName": "barcodeId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "shopId",
+          "columnName": "shopId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "productId",
+          "columnName": "productId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "skuSnapshot",
+          "columnName": "skuSnapshot",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "nameSnapshot",
+          "columnName": "nameSnapshot",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "variantSnapshot",
+          "columnName": "variantSnapshot",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "purchaseCostPaise",
+          "columnName": "purchaseCostPaise",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "costCode",
+          "columnName": "costCode",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "alphabetSnapshot",
+          "columnName": "alphabetSnapshot",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "createdAt",
+          "columnName": "createdAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": false,
+        "columnNames": [
+          "barcodeId"
+        ]
+      },
+      "indices": [
+        {
+          "name": "index_product_labels_barcodeId_productId",
+          "unique": false,
+          "columnNames": [
+            "barcodeId",
+            "productId"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_product_labels_barcodeId_productId` ON `${TABLE_NAME}` (`barcodeId`, `productId`)"
+        },
+        {
+          "name": "index_product_labels_shopId_productId",
+          "unique": false,
+          "columnNames": [
+            "shopId",
+            "productId"
+          ],
+          "orders": [],
+          "createSql": "CREATE INDEX IF NOT EXISTS `index_product_labels_shopId_productId` ON `${TABLE_NAME}` (`shopId`, `productId`)"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "table": "product_barcodes",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "barcodeId",
+            "productId"
+          ],
+          "referencedColumns": [
+            "id",
+            "productId"
+          ]
+        },
+        {
+          "table": "shop_products",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "shopId",
+            "productId"
+          ],
+          "referencedColumns": [
+            "shopId",
+            "productId"
+          ]
+        }
+      ]
+    },
+    {
+      "tableName": "receipt_settings",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`shopId` INTEGER NOT NULL, `paper` TEXT NOT NULL, `footer` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, `printerMode` TEXT NOT NULL DEFAULT 'ANDROID', `printerKey` TEXT NOT NULL DEFAULT '', `printerName` TEXT NOT NULL DEFAULT '', `cutPaper` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`shopId`), FOREIGN KEY(`shopId`) REFERENCES `shops`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+      "fields": [
+        {
+          "fieldPath": "shopId",
+          "columnName": "shopId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "paper",
+          "columnName": "paper",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "footer",
+          "columnName": "footer",
+          "affinity": "TEXT",
+          "notNull": true
+        },
+        {
+          "fieldPath": "updatedAt",
+          "columnName": "updatedAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "printerMode",
+          "columnName": "printerMode",
+          "affinity": "TEXT",
+          "notNull": true,
+          "defaultValue": "'ANDROID'"
+        },
+        {
+          "fieldPath": "printerKey",
+          "columnName": "printerKey",
+          "affinity": "TEXT",
+          "notNull": true,
+          "defaultValue": "''"
+        },
+        {
+          "fieldPath": "printerName",
+          "columnName": "printerName",
+          "affinity": "TEXT",
+          "notNull": true,
+          "defaultValue": "''"
+        },
+        {
+          "fieldPath": "cutPaper",
+          "columnName": "cutPaper",
+          "affinity": "INTEGER",
+          "notNull": true,
+          "defaultValue": "0"
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": false,
+        "columnNames": [
+          "shopId"
+        ]
+      },
+      "indices": [],
+      "foreignKeys": [
+        {
+          "table": "shops",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "shopId"
+          ],
+          "referencedColumns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "tableName": "return_sequences",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`shopId` INTEGER NOT NULL, `nextValue` INTEGER NOT NULL, PRIMARY KEY(`shopId`), FOREIGN KEY(`shopId`) REFERENCES `shops`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+      "fields": [
+        {
+          "fieldPath": "shopId",
+          "columnName": "shopId",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "nextValue",
+          "columnName": "nextValue",
+          "affinity": "INTEGER",
+          "notNull": true
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": false,
+        "columnNames": [
+          "shopId"
+        ]
+      },
+      "indices": [],
+      "foreignKeys": [
+        {
+          "table": "shops",
+          "onDelete": "RESTRICT",
+          "onUpdate": "NO ACTION",
+          "columns": [
+            "shopId"
+          ],
+          "referencedColumns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "tableName": "owner_security",
+      "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `salt` TEXT, `pinHash` TEXT, `failedAttempts` INTEGER NOT NULL, `lockedUntil` INTEGER NOT NULL, `autoLockMinutes` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "columnName": "id",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "salt",
+          "columnName": "salt",
+          "affinity": "TEXT",
+          "notNull": false
+        },
+        {
+          "fieldPath": "pinHash",
+          "columnName": "pinHash",
+          "affinity": "TEXT",
+          "notNull": false
+        },
+        {
+          "fieldPath": "failedAttempts",
+          "columnName": "failedAttempts",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "lockedUntil",
+          "columnName": "lockedUntil",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "autoLockMinutes",
+          "columnName": "autoLockMinutes",
+          "affinity": "INTEGER",
+          "notNull": true
+        },
+        {
+          "fieldPath": "updatedAt",
+          "columnName": "updatedAt",
+          "affinity": "INTEGER",
+          "notNull": true
+        }
+      ],
+      "primaryKey": {
+        "autoGenerate": false,
+        "columnNames": [
+          "id"
+        ]
+      },
+      "indices": [],
+      "foreignKeys": []
+    }
+  ],
+  "businessBackupTables": [
+    "shops",
+    "products",
+    "product_barcodes",
+    "shop_products",
+    "inventory",
+    "sales",
+    "sale_items",
+    "returns",
+    "return_items",
+    "stock_movements",
+    "expenses",
+    "audit_events",
+    "app_settings",
+    "sku_sequences",
+    "sales_sequences",
+    "return_sequences",
+    "cost_code_settings",
+    "product_labels",
+    "receipt_settings"
+  ],
+  "runtimeAndSchemaFiles": [
+    {
+      "path": "app/build.gradle.kts",
+      "sha256": "e4877ae7ce90edac5549fe9e570eb937f78b51743754dd3845a1f3cce65a7f95"
+    },
+    {
+      "path": "app/schemas/com.offerpoint.pos.data.local.database.PosDatabase/1.json",
+      "sha256": "396a3b406baf3821ed00ef8e837d778a47dc1ccdeeba4ad2e4805275e9f7315f"
+    },
+    {
+      "path": "app/schemas/com.offerpoint.pos.data.local.database.PosDatabase/2.json",
+      "sha256": "df63fd8ce019116c3c3b8e94220b307b3a15a7e4a44721552a9dc22d47a848ef"
+    },
+    {
+      "path": "app/schemas/com.offerpoint.pos.data.local.database.PosDatabase/3.json",
+      "sha256": "a074705348ee48d07ca296c49faa138e94d7118f0b974ea8bf2dbd0ad5a4913e"
+    },
+    {
+      "path": "app/schemas/com.offerpoint.pos.data.local.database.PosDatabase/4.json",
+      "sha256": "4e2265c489a4dd66f629a62fe0cd229c3e40454e7a9f9d9a2103203723dbab19"
+    },
+    {
+      "path": "app/schemas/com.offerpoint.pos.data.local.database.PosDatabase/5.json",
+      "sha256": "279ceed4d5a4c16a114559746161cc933b2265d532d0127e50edc5b469027ab9"
+    },
+    {
+      "path": "app/schemas/com.offerpoint.pos.data.local.database.PosDatabase/6.json",
+      "sha256": "027bd3a6530a8697dc00dd34e0793fea7b4ce9b5d1ae9b27d007d77bfa8e72f2"
+    },
+    {
+      "path": "app/src/main/AndroidManifest.xml",
+      "sha256": "323b8d65ec844b6e73baedbe728572ff099744fb7aad085eeb50de7cbf564caa"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/MainActivity.kt",
+      "sha256": "94a88a239c042d83d05bfead42988d09525a729ad57122826825d7155146f747"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/OfferPointApplication.kt",
+      "sha256": "6eb11023e66a75eb55d4cea84f37ae31b15d7eacb66f47f33ab0bf7ad76a5a60"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/backup/BackupCipher.kt",
+      "sha256": "1df930a28687400f6a4ff3e7b650e487b537cbcc4b96554622438b9ade4c98e3"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/backup/DatabaseSnapshot.kt",
+      "sha256": "91d093ba8472ff2a8912ef3c373b4daea6e29083600611f3664fb65400ce97bd"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/local/dao/PosDao.kt",
+      "sha256": "4a6ebab77063da44f32f4d8774303ee128f5f0d4d24070b91b3774f34bc3cf4f"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/local/database/Migration6.kt",
+      "sha256": "bcb90a61878f8ffd95ccb87fd190fedd344f36e7280a23ef328268309e2739aa"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/local/database/Migrations.kt",
+      "sha256": "77e0f810ddf34eb80dd0a12829e809c0adc9c70cba3a2f1c77fd9441ddd4de3f"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/local/database/PosDatabase.kt",
+      "sha256": "b7b996dc1e5d23ac1af509e5fe77b66cbcfc699afe17181d33950596486117c7"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/local/database/WorkspaceWriteGate.kt",
+      "sha256": "feb0f7147963fdb73e9e7dd50356b52a468d70bc9ae3933209434c16c328ef84"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/local/entity/Entities.kt",
+      "sha256": "c14dae57f0632a25349d389a805a7c3f4d7aaa20878f585d6b16f48919935a02"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/preferences/LocalWorkspacePreferencesRepository.kt",
+      "sha256": "0a62b1184f66c982723a331662abdf4859f3b6eecb9587c0ec1cd0594e03e681"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/preferences/WorkspacePreferencesJson.kt",
+      "sha256": "75cc39dc5c38d489a6bce81fbdd0605e5505a12b28f7f6eb960369d3af518d4f"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/repository/RoomBackupRepository.kt",
+      "sha256": "51dfc40894881ed8397ea67542aefa4fda373e7190121fabbe02419ac6fb1a2d"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/repository/RoomBarcodeLabelRepository.kt",
+      "sha256": "899f8bcc54594865ddeafc4bf03e4007e4935cbc9a7c79664238c6ff4e8da0e7"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/repository/RoomFinanceRepositories.kt",
+      "sha256": "9e8aaf256bb1e5c65ca0e0e4510099e270ce44a890e2410ea75cf45c5ea0c832"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/repository/RoomReceiptSettingsRepository.kt",
+      "sha256": "5be9f398161c0bfabb6b24a354ebfffb1209f8f97a6d97ade975ecea33a909fe"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/repository/RoomRepositories.kt",
+      "sha256": "ed00e7ea3cf83cc150a69dc7e01276fece2a33aa7c84d3921e937fc54f0dd571"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/repository/RoomSalesRepository.kt",
+      "sha256": "076166099169b4fcc31cef7156915ed8192a5b99a9a54c6fb4a2c5e8b26067d7"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/data/repository/RoomSecurityRepository.kt",
+      "sha256": "f59372c8ecfbe0d21481f0626467c2869faaab19de0d277d0914e740a449fdb4"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/di/AppContainer.kt",
+      "sha256": "989a59e37518f6d636cce52c66afd55235aed6287a1f17a75bc43b992bd06d5c"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/model/Backups.kt",
+      "sha256": "ae4e4326dc58d20f8854b8fd2a93bfb1993fd82d175dc8fb171aef771fbbb108"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/model/BarcodeLabels.kt",
+      "sha256": "c7b60141ab9149980bc3475b52a25bde635a2bcf57ebdd39e389c8273560eb3c"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/model/Checkout.kt",
+      "sha256": "434308f83d4190b30b05d99d3d3f2d8cbc80712e18f4593128e955d1b04248a8"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/model/Finance.kt",
+      "sha256": "3713fe79eb85e06b6b18d297a466af3644cf11ff3b28668f637ac2076d73ae4d"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/model/Models.kt",
+      "sha256": "4ae40d1e4c840a1d39ea25acce3fd1d8d48b1e20bb2d51a8546b884f33885e21"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/model/Receipts.kt",
+      "sha256": "40853c6e5648cd3959b29d805303bfa7d7f6df5e839d03bb79361018b410f983"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/model/WorkspacePreferences.kt",
+      "sha256": "34a2e883d5757a571325338481b1a541a986e1b9424484f6365cf1efd2f80137"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/repository/BackupRepository.kt",
+      "sha256": "8df1371780c5c2128e9ec16881542d55067e30cb5c3054b41e5025eef6f35a67"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/repository/BarcodeLabelRepository.kt",
+      "sha256": "e9881a74869fdd56186d58b2b8ef3892e72fedbc77dc42049067a8e9d6297746"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/repository/FinanceRepositories.kt",
+      "sha256": "6a03a8a89529fca59e8402747c508a8444c48f0afb84bb7183bafd8e7637ebc5"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/repository/ReceiptSettingsRepository.kt",
+      "sha256": "283f8bcec305eadf8c10c8f22ec18badd31700ce65891acc0262d97a8748ce60"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/repository/Repositories.kt",
+      "sha256": "eee1cdccfc86e09699d46446bc5bf3d915af2d5ba906b4074f3f1168aa357dc5"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/repository/SalesRepository.kt",
+      "sha256": "c674a69987a8d80710782427e90c0dc246fe33f7cd4ef1077ee880c0f6b65485"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/repository/SecurityRepository.kt",
+      "sha256": "7400ab58a6e11e205f22176c6b2ae528364f1614b4f25f85373e947391c1eb00"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/repository/WorkspacePreferencesRepository.kt",
+      "sha256": "bb819f1edbbb297d9499abbff38c220291e97f5b00b6585282045a53f532a8d9"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/usecase/BuildReceipt.kt",
+      "sha256": "2ca40b7d156f36a3d83b95737871b7c0eed7aa08f13292d42b783fd4ded869af"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/usecase/BuildRefundReceipt.kt",
+      "sha256": "c0914d98104b6569d2087ca5da4aa6de8538aab28062ec4b6d45cffe242fc61a"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/usecase/CapturedProductBarcode.kt",
+      "sha256": "c450dfad7218006e1c12c4b638d0f4f817ab47aaf707cf4065c6a19bbdea551b"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/usecase/CheckoutMath.kt",
+      "sha256": "2372ee493472559dfcc0859b1135e73ecc11c85272a6b3c8c2fffee3e90117d9"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/usecase/CostCode.kt",
+      "sha256": "3e453f23ff8a9cb159a9e7ef445b0f4d5b416aef6ad546f89eee1daf79792509"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/usecase/LookupScannedProduct.kt",
+      "sha256": "af7b41a4817ec6bd186a3f153d8c7b059a33ede562632462e1855fd0c23c46c8"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/usecase/ReceiptReference.kt",
+      "sha256": "04d22e8948658dd6679eee1513d70813e386f38d6e9d0e238549e08ef118fe86"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/usecase/RefundMath.kt",
+      "sha256": "8957d880291549e272828d4ce16d0f3514545957e88d59fddb7ff0892ce36769"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/usecase/ReportCsv.kt",
+      "sha256": "0840767819a551a1655c2ece1054e5de3130f8b0d80be2f147fda213d55fd59e"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/usecase/SaleProfit.kt",
+      "sha256": "e0f84aeb0486824b62b29b6544ba27ea653bfef3e8bbd0e3a05a833c3db356f3"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/domain/usecase/Validation.kt",
+      "sha256": "3707e96ada2ac1b468fe2c2672aa7e9f2a83382d797edec2f362a05ef4c40fb5"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/backup/BackupScreen.kt",
+      "sha256": "b363f28b215c36544c2c85ced7012842dba4e283fcc1f3316fa34ae262395970"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/backup/BackupViewModel.kt",
+      "sha256": "75856d802eb6cd57327e13faefae0586ebe63649742a7eaff67448da9f9949d8"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/components/Components.kt",
+      "sha256": "42f5901317580e7f678aeb798395fb579b16af030f6c7d564d7da84219cbfd37"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/customize/CustomizedDashboard.kt",
+      "sha256": "fb7450f756442612dd3264a42df388f863ef90c1e57c581f057756f08a3cf5b1"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/customize/WorkspaceCustomizationScreen.kt",
+      "sha256": "1420371bbb0ba040fc832c01bdbb8da952ea0feeb8df17765986bde064a29986"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/customize/WorkspaceCustomizationViewModel.kt",
+      "sha256": "4aa8327cfbd1e34ab742c887e8724176495952ca9674648851ee90c806199931"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/finance/FinanceScreens.kt",
+      "sha256": "f129f57ce914cce4ae03a2f4578e6b0fc0bb0e6591023ce7e82628f3d5fd4869"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/finance/FinanceViewModels.kt",
+      "sha256": "95cca1ee87154c29a14aa1097365cb6cfaf3ff34ad007a05e30e1e981678196a"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/finance/RefundHistoryViewModel.kt",
+      "sha256": "099d058ffc70101205deeb875b9029d3f2ecf7580aaf89fcac9c200231c96145"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/finance/TodayNetSalesViewModel.kt",
+      "sha256": "e2d96b13eeb3d49b58def1d56b4967d181cd9cbbfab459efb87949fc85e46fba"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/labels/BarcodeLabelScreens.kt",
+      "sha256": "e7d40a88345ed68df61059405c29e1c3c3e7e75b512c31ca69ffef50a77dc449"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/labels/BarcodeLabelViewModels.kt",
+      "sha256": "396b79402245c11e0dfe7b3b1fdf5e09ec520e1e49ed7b92f640a86de4e7b201"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/labels/LabelBarcodePattern.kt",
+      "sha256": "aaf55eda1c21209d8c0c1cd3aede12c1809d05bb7d1cbee2a4c64c0a044c0fa5"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/labels/LabelPdfExporter.kt",
+      "sha256": "9bb3cc1895797d8006966bdca112ed2e2f30eeeafc84b20883cbdfe6aca6e128"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/navigation/OfferPointApp.kt",
+      "sha256": "c1495110f9a92ff02dcd85aa1f84535f9f4f083f81f110b937d0966986b70041"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/printing/PrinterSettings.kt",
+      "sha256": "99f85924720f946768f23f0b9f5fb3b450d27cf6a7b6147200284f863c4f4a6c"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/printing/ThermalPrinter.kt",
+      "sha256": "b0b5a853b65db278efecb8b923ab93fa281efc72132a97b136ceb06e7e527c15"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/receipts/ReceiptLayout.kt",
+      "sha256": "61b7e705ac4d32350a085c5d0b3f4f38df33c0b6a50560655d2c1bacfe14ba9c"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/receipts/ReceiptPdfExporter.kt",
+      "sha256": "b3ba286c0ad9f16e4a924f450cfdd1e8aff8f6dda2c5d81077eb8d122351e22c"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/receipts/ReceiptPrintAdapter.kt",
+      "sha256": "32615e8e350167f42f1bf4b434a76fea55deaca96da9267ca3efee26e6d2346f"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/receipts/ReceiptQr.kt",
+      "sha256": "80c6c9f8e73f3ac3b7eb1eea269d7dae2fec73f79854d8c508bef0f83c8553c9"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/receipts/ReceiptScreens.kt",
+      "sha256": "d6bc80cc53a366ce0903441318d1d95727593280501ff85fa7ff38377f757f8b"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/receipts/ReceiptViewModels.kt",
+      "sha256": "a95193a7e63e90bbe2cd38c855cece6dcb1df1e02c37527b852312edf6948a90"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/scanner/BarcodeCameraScanner.kt",
+      "sha256": "e03789001f358c17dfdb70785a383bcff09f69edc1a02fcb77801263f9bc8235"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/scanner/BarcodeCaptureDialog.kt",
+      "sha256": "a6fec0b01931678c73e997d8c025619fc776103139b780ea3d27a64d2e619ac6"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/scanner/RetailBarcodeDecoder.kt",
+      "sha256": "b2398e43640cb0f42d7d83afa95ff5d3996812438a1be78c895955e9e76f62e6"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/screens/CheckoutScreens.kt",
+      "sha256": "fa89768bbc2deb8c00380a598416698da794f63715d8cd1a544ae0919e1f95a7"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/screens/CheckoutViewModels.kt",
+      "sha256": "e87b6f870afcf4869a0144e5fdd123a86ff982b0eb58a190dd0f9ba5b74d743b"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/screens/PosViewModels.kt",
+      "sha256": "2ee22e72c2c1c8d6d6749181786d3b9e9e070af8233b67888c584ac4dcda1987"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/screens/ProductEditorScreen.kt",
+      "sha256": "85313fea2ad9c78293280e0c1db8693326ca364099834da1a2740ed1437ce11a"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/screens/Screens.kt",
+      "sha256": "a6f5948962357328f7123eead3cd1a4a18e323b32a78036ad07b53b916307ea6"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/security/SecurityScreens.kt",
+      "sha256": "7f9b52b6a4df778ec600dfb6c52dd0656f34ff5e632b6bd80038dd1129faee2a"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/security/SecurityViewModel.kt",
+      "sha256": "2e6e765cb740d259320198d26a00cf9e7a2386018a45bfe4dcee527c363f17c5"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/staff/StaffToolsAction.kt",
+      "sha256": "e6fb9ed7fdf030a03cca75c4b17f9e2c2cb1f25ae427f3cc06d871e3049cd442"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/staff/StaffToolsViewModel.kt",
+      "sha256": "a7cdd49f557fda3c3ca003b25a560ff28d702c1ee7fd5fe36dcb23122e840021"
+    },
+    {
+      "path": "app/src/main/java/com/offerpoint/pos/ui/theme/Theme.kt",
+      "sha256": "5e703bf964f1eb0428185812993766f3599e006621a4f9e74f8c050c98933018"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_launcher.xml",
+      "sha256": "fda4396753e1b4df3ba80382b7533e8f71a6eea3d8be2892aec7f1b427cec1f9"
+    },
+    {
+      "path": "app/src/main/res/values/strings.xml",
+      "sha256": "78f1ec0d825a5ae17f053d12ffa2540245788ff81812314ae50c7ee7cf331dd4"
+    },
+    {
+      "path": "app/src/main/res/values/themes.xml",
+      "sha256": "6d1569a677c02530a9a832b3ccf1bcd1b1b1e36c701958516bf67e4f2eb4261e"
+    },
+    {
+      "path": "app/src/main/res/xml/file_paths.xml",
+      "sha256": "2877b6ac75e316899f9f98c713f0f2ae9590ce50dcc9ccc9f86dc5a49273e994"
+    },
+    {
+      "path": "build.gradle.kts",
+      "sha256": "4326ba24516727cf1a15d0e1b93a196903d21cf72c40de3fc4e0172ad787573e"
+    },
+    {
+      "path": "gradle/libs.versions.toml",
+      "sha256": "7a00ea1ce86a1b89426f31d73d17bcb01a02065c2c782cc3314e07bb71193993"
+    },
+    {
+      "path": "gradle/wrapper/gradle-wrapper.properties",
+      "sha256": "3d91f0932da99885c41e9dc4e85c9f9a2d3bfef4f0ad87473014dc0827a94884"
+    },
+    {
+      "path": "gradle.properties",
+      "sha256": "1b0d06c4540bd61cab45f373e963c74fa139d08167d7786012d2496666a0b258"
+    },
+    {
+      "path": "settings.gradle.kts",
+      "sha256": "9cfe441ce202fe2c6e294ee7b924710e709fa4bebabd97b3d125f713c3a7b304"
+    }
+  ],
+  "limits": [
+    "No device database or credentials read.",
+    "Generated Android rescue-test ciphertext excluded from runtime hashes.",
+    "This inventories schema and source, not the contents of a phone backup."
+  ]
+}
