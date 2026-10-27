@@ -4,9 +4,13 @@ An offline Android retail foundation for **Offer Point** and **Fancy Footwears**
 
 Milestone 3 adds **camera-first offline checkout and printable Code 128 product labels with a secret purchase-cost code**. Offer Point is the primary shop and the default on a fresh installation. Existing Fancy Footwears inventory, transactions, and selection are retained; its manual product checkout remains available through Settings. Real cash sales still save atomically with stock deductions and appear in shop-specific history. Receipt documents/printing, returns, financial reports, expenses entry, and backups remain deferred.
 
-## Build verification status
+## Current verified build
 
-Milestone 3 source is implemented; its Android build and emulator verification are pending. The prior verified baseline is [Milestone 2 run 40355529395](https://github.com/27Talli/practice/actions/runs/40355529395). Current results and APK links will be recorded in [VERIFICATION.md](VERIFICATION.md) after the new workflow finishes.
+Version **0.3.0** passed [GitHub Actions run 40448504832](https://github.com/27Talli/practice/actions/runs/40448504832): **72 JVM tests per variant**, **62 Android emulator tests**, lint, both APK builds and signature verification. This includes real Room 1 → 2 → 3 upgrade coverage and native PDF rendering decoded back into a barcode. See [VERIFICATION.md](VERIFICATION.md) for source, checksums and limits.
+
+[Download Live APK ZIP](https://github.com/27Talli/practice/actions/runs/40448504832/artifacts/12709715428) · [Download Demo APK ZIP](https://github.com/27Talli/practice/actions/runs/40448504832/artifacts/12709840012)
+
+Extract the ZIP and install its `.apk`; GitHub may require sign-in. The artifacts are retained until 25 January 2027.
 
 Use Demo for evaluation; it keeps sample products/sales separate. These are debug builds: an existing app may reject a differently signed update. **Do not uninstall or clear existing business data to resolve a signing mismatch.** See the signing and upgrade notes below.
 
@@ -80,7 +84,7 @@ Room integration tests require an API 26+ emulator or an attached Android phone.
 ./gradlew :app:connectedLiveDebugAndroidTest
 ```
 
-The JVM suite covers validation, exact checkout arithmetic, payment recovery, and ViewModel behavior. The Android suite includes Room/migration tests, an end-to-end Compose checkout test, and native PDF generation/rendering with barcode decoding and FileProvider access. New tests cover label registration, private cost codes, alias persistence, Live/Demo label namespaces, UPC/EAN ambiguity, scan state and duplicate guards, and version 2 → 3 migration. Executed totals are recorded in VERIFICATION.md. GitHub Actions runs the JVM suite for both variants and the device suite on Android; consult its completed logs and reports for actual results. Coverage includes idempotent shop creation, persistent selection, product insertion/editing/retrieval, search, shop-specific prices and quantities, explicit product association, global internal/manufacturer barcode uniqueness, nonnegative stock, integer overflow, required adjustment reasons, ledger/audit consistency, forced transaction rollback, foreign-key isolation of future sales/returns, and closing/reopening a disk database. Test fixtures are created by tests and never inserted into the live app.
+The **72-test JVM suite** covers validation, exact checkout arithmetic, payment recovery, cost-code boundaries, optical decoding and ViewModel behavior. The **62-test Android suite** includes Room/migration tests, an end-to-end Compose checkout test, and native PDF generation/rendering with barcode decoding and FileProvider access. New tests cover label registration, private cost codes, alias persistence, Live/Demo label namespaces, UPC/EAN ambiguity, scan state and duplicate guards, and version 2 → 3 migration. Executed totals are recorded in VERIFICATION.md. GitHub Actions runs the JVM suite for both variants and the device suite on Android; consult its completed logs and reports for actual results. Coverage includes idempotent shop creation, persistent selection, product insertion/editing/retrieval, search, shop-specific prices and quantities, explicit product association, global internal/manufacturer barcode uniqueness, nonnegative stock, integer overflow, required adjustment reasons, ledger/audit consistency, forced transaction rollback, foreign-key isolation of future sales/returns, and closing/reopening a disk database. Test fixtures are created by tests and never inserted into the live app.
 
 A supplemental source-reflected SQLite check can run without Android tooling using Python 3:
 
@@ -177,7 +181,7 @@ Supporting `AppSettings`, `SkuSequence`, `SaleSequence`, and `AuditEvent` tables
 - Receipt references such as `OP-S-000001` and `FF-S-000001` allocate in the same transaction as the sale. They identify saved sales; receipt documents and printing are not implemented.
 - Cart drafts use Android SavedStateHandle for normal process recreation; they are not long-term parked carts. Completed sales are durable Room records. Force-stopping before Android saves UI state may discard an unpaid draft, while completed sales remain accessible in Sales history.
 
-Room exports versioned schemas to `app/schemas`; the workflow includes generated schemas in the `verification-reports` artifact. Historical generated versions 1 and 2 are committed; version 3 is generated by Room and must be committed after successful verification. Explicit migrations preserve business records through 1 → 2 → 3. **There is no destructive migration fallback.** Future schema changes must increment the version, commit an explicit migration, and add migration tests before release. Keep historical stock and audit rows; deletion/archival workflows are outside this milestone.
+Room exports versioned schemas to `app/schemas`; the workflow includes generated schemas in the `verification-reports` artifact. Actual Room-generated schema versions 1, 2 and 3 are committed after successful verification. Explicit migrations preserve business records through 1 → 2 → 3. **There is no destructive migration fallback.** Future schema changes must increment the version, commit an explicit migration, and add migration tests before release. Keep historical stock and audit rows; deletion/archival workflows are outside this milestone.
 
 ## Secret cost-code labels
 
