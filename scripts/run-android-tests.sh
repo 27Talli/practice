@@ -37,7 +37,12 @@ mkdir -p "$ANDROID_AVD_HOME"
 printf 'no\n' | "$avdmanager" create avd --force --name offer-point-ci --package "$image" --device pixel_2
 
 emulator_pid=''
+capture_pid=''
 cleanup() {
+    if [[ -n "$capture_pid" ]]; then
+        kill "$capture_pid" >/dev/null 2>&1 || true
+        wait "$capture_pid" >/dev/null 2>&1 || true
+    fi
     mkdir -p "$report_dir/customization-previews"
     timeout 10 "$adb" -s "$ANDROID_SERIAL" pull /sdcard/Android/data/com.offerpoint.pos/files/customization-previews/. "$report_dir/customization-previews/" >/dev/null 2>&1 || true
     timeout 10 "$adb" -s "$ANDROID_SERIAL" logcat -d > "$report_dir/logcat.txt" 2>&1 || true
@@ -94,11 +99,47 @@ fi
 "$adb" -s "$ANDROID_SERIAL" shell settings put global animator_duration_scale 0
 "$adb" -s "$ANDROID_SERIAL" logcat -c
 
+# UTP removes the tested app at suite teardown. Copy synthetic UI captures while
+# it is installed, using its debug UID rather than relying on shell storage access.
+mkdir -p "$report_dir/customization-previews"
+python3 - "$adb" "$ANDROID_SERIAL" "$report_dir/customization-previews" > "$report_dir/customization-collector.log" 2>&1 <<'PY' &
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+adb, serial, destination = sys.argv[1:]
+folder = Path(destination)
+names = ('dashboard-grid.png', 'checkout-dark.png')
+while True:
+    for name in names:
+        output = folder / name
+        if output.exists():
+            continue
+        try:
+            result = subprocess.run([adb, '-s', serial, 'exec-out', 'run-as', 'com.offerpoint.pos', 'cat',
+                '/sdcard/Android/data/com.offerpoint.pos/files/customization-previews/' + name],
+                capture_output=True, timeout=8)
+            image = result.stdout
+            if result.returncode == 0 and image.startswith(b'\x89PNG\r\n\x1a\n') and image.endswith(b'\x00\x00\x00\x00IEND\xaeB`\x82'):
+                output.write_bytes(image)
+                print('Captured synthetic UI:', name, flush=True)
+        except subprocess.TimeoutExpired:
+            pass
+    if all((folder / name).is_file() for name in names):
+        break
+    time.sleep(2)
+PY
+capture_pid=$!
+
 # Application/test APKs were already compiled. Keep the test runner's heap bounded
 # while the emulator is active on a standard hosted runner.
 ./gradlew --no-daemon --stacktrace --max-workers=2 \
     -Dorg.gradle.jvmargs='-Xmx1536m -Dfile.encoding=UTF-8' \
     :app:connectedLiveDebugAndroidTest
+
+test -s "$report_dir/customization-previews/dashboard-grid.png"
+test -s "$report_dir/customization-previews/checkout-dark.png"
 
 python3 - <<'PY'
 from pathlib import Path
