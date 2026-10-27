@@ -407,17 +407,3 @@ private fun SettingRow(label: String, value: String) {
     }
 }
 
-@Composable
-internal fun ComingSoonScreen(title: String, shop: Shop, onBack: () -> Unit) {
-    PosScaffold(title, shop.name, onBack) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(24.dp), verticalArrangement = Arrangement.Center) {
-            Text("Coming soon", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(16.dp))
-            Text("Detailed sales and financial reports will be added in a later milestone.", style = MaterialTheme.typography.bodyLarge)
-            Spacer(Modifier.height(12.dp))
-            Text("${shop.name} · No transactions are created on this screen.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(24.dp))
-            Button(onClick = onBack, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Back to dashboard") }
-        }
-    }
-}

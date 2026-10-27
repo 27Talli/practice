@@ -35,7 +35,7 @@ fun RefundScreen(shop:Shop,state:RefundState,onEdit:(Long,String,String)->Unit,o
     BackHandler(locked){}
     LaunchedEffect(state.completedId){state.completedId?.let(onSaved)}
     PosScaffold("Return items",shop.name,{if(!locked)onBack()}){padding->
-        LazyColumn(Modifier.fillMaxSize().padding(padding),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
+        LazyColumn(Modifier.fillMaxSize().padding(padding).imePadding(),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
             item{Text("Return & cash refund",style=MaterialTheme.typography.headlineMedium)}
             item{StatusCard("Original sale",state.eligible?.sale?.summary?.receiptNumber ?: "Checking the saved sale…")}
             item{Text("Refunds use the original selling prices and discounts. Restock only items that can be sold again. Enter zero for items you are keeping.")}
@@ -61,7 +61,7 @@ fun RefundScreen(shop:Shop,state:RefundState,onEdit:(Long,String,String)->Unit,o
 
 @Composable
 fun RefundHistoryScreen(shop:Shop,rows:List<RefundDetails>,error:String?,onOpen:(Long)->Unit,onBack:()->Unit){
-    PosScaffold("Returns & refunds",shop.name,onBack){padding->LazyColumn(Modifier.fillMaxSize().padding(padding),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+    PosScaffold("Returns & refunds",shop.name,onBack){padding->LazyColumn(Modifier.fillMaxSize().padding(padding).imePadding(),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
         item{Text("Saved returns",style=MaterialTheme.typography.headlineMedium)}
         if(error!=null)item{ErrorNotice(error)}
         if(rows.isEmpty()&&error==null)item{EmptyState("No returns yet","Open a saved sale from Sales history to return its items.")}
@@ -76,7 +76,7 @@ fun RefundHistoryScreen(shop:Shop,rows:List<RefundDetails>,error:String?,onOpen:
 fun ExpenseScreen(shop:Shop,state:ExpenseState,onFields:(String,String,String,String)->Unit,onAdd:()->Unit,onRecover:()->Unit,onVoid:(Long,String)->Unit,onBack:()->Unit){
     var voiding by remember{mutableStateOf<ExpenseRecord?>(null)};var voidReason by remember{mutableStateOf("")}
     val locked=state.busy||state.recoveryRequired;BackHandler(locked){}
-    PosScaffold("Expenses",shop.name,{if(!locked)onBack()}){padding->LazyColumn(Modifier.fillMaxSize().padding(padding),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+    PosScaffold("Expenses",shop.name,{if(!locked)onBack()}){padding->LazyColumn(Modifier.fillMaxSize().padding(padding).imePadding(),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
         item{Text("Record a shop expense",style=MaterialTheme.typography.headlineMedium)}
         item{OutlinedTextField(state.amount,{onFields(it,state.category,state.note,state.date)},label={Text("Amount (Rs.)")},singleLine=true,enabled=!locked,keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Decimal),modifier=Modifier.fillMaxWidth())}
         item{OutlinedTextField(state.category,{onFields(state.amount,it,state.note,state.date)},label={Text("Category (e.g. Rent, Utilities)")},singleLine=true,enabled=!locked,modifier=Modifier.fillMaxWidth())}
@@ -107,7 +107,7 @@ fun ReportsScreen(shop:Shop,state:ReportState,onRange:(String,String)->Unit,onBa
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")){uri->if(uri!=null&&state.report!=null){val report=state.report;exporting=true;scope.launch{try{
         withContext(Dispatchers.IO){requireNotNull(context.contentResolver.openOutputStream(uri,"wt")).bufferedWriter(Charsets.UTF_8).use{ReportCsv.write(it,shop,report)}};exportMessage="Report CSV saved. Keep financial exports private."
     }catch(e:Exception){if(e is kotlinx.coroutines.CancellationException)throw e;exportMessage=e.message ?: "The report could not be exported."}finally{exporting=false}}}}
-    PosScaffold("Reports",shop.name,onBack){padding->LazyColumn(Modifier.fillMaxSize().padding(padding),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
+    PosScaffold("Reports",shop.name,onBack){padding->LazyColumn(Modifier.fillMaxSize().padding(padding).imePadding(),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
         item{Text("Shop financial report",style=MaterialTheme.typography.headlineMedium);Text("Dates use Pakistan time. Sales and refunds are counted on their posting dates; expenses use the entered expense date.")}
         item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
             FilterChip(selected=from==today.toString()&&to==today.toString(),onClick={from=today.toString();to=from;onRange(from,to)},label={Text("Today")})

@@ -6,6 +6,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -26,7 +28,7 @@ import com.offerpoint.pos.ui.screens.*
 import kotlinx.coroutines.launch
 
 @Composable
-fun SecureWorkspace(model:SecurityViewModel,content:@Composable()->Unit){
+fun SecureWorkspace(model:SecurityViewModel,content: @Composable () -> Unit){
     val state by model.state.collectAsStateWithLifecycle();val holder=rememberSaveableStateHolder()
     val owner=LocalLifecycleOwner.current
     DisposableEffect(owner){val observer=LifecycleEventObserver{_,event->if(event==Lifecycle.Event.ON_RESUME)model.foreground()};owner.lifecycle.addObserver(observer);onDispose{owner.lifecycle.removeObserver(observer)}}
@@ -38,7 +40,7 @@ fun SecureWorkspace(model:SecurityViewModel,content:@Composable()->Unit){
     val context=LocalContext.current
     val deviceUnlock=rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()){result->if(result.resultCode==android.app.Activity.RESULT_OK)onDeviceReset()}
     BackHandler{}
-    Column(Modifier.fillMaxSize().padding(28.dp),verticalArrangement=Arrangement.Center){
+    Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(28.dp),verticalArrangement=Arrangement.Center){
         Text("Offer Point POS",style=MaterialTheme.typography.headlineLarge);Spacer(Modifier.height(16.dp));Text("Enter your local app PIN to continue.")
         OutlinedTextField(pin,{pin=it},label={Text("App PIN")},singleLine=true,enabled=!state.busy,visualTransformation=PasswordVisualTransformation(),keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.NumberPassword),modifier=Modifier.fillMaxWidth().padding(top=18.dp))
         if(state.error!=null)ErrorNotice(state.error)
@@ -64,7 +66,7 @@ fun SecureWorkspace(model:SecurityViewModel,content:@Composable()->Unit){
         busy=true;current="";pin="";repeated=""
         scope.launch{try{repository.configure(old,next,duration);message=if(disable)"App PIN disabled." else "Local PIN saved. Keep your phone screen lock enabled."}catch(e:Exception){if(e is kotlinx.coroutines.CancellationException)throw e;message=e.message}finally{old.fill('\u0000');next?.fill('\u0000');busy=false}}
     }
-    PosScaffold("Local app security","This device",{if(!busy)onBack()}){padding->LazyColumn(Modifier.fillMaxSize().padding(padding),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
+    PosScaffold("Local app security","This device",{if(!busy)onBack()}){padding->LazyColumn(Modifier.fillMaxSize().padding(padding).imePadding(),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
         item{StatusCard(if(status.enabled)"PIN enabled" else "PIN optional","A local PIN locks this app after inactivity. It does not create an account. The PIN stays on this device and is not included in business backups.")}
         if(status.enabled)item{OutlinedTextField(current,{current=it},label={Text("Current PIN")},singleLine=true,visualTransformation=PasswordVisualTransformation(),keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.NumberPassword),enabled=!busy,modifier=Modifier.fillMaxWidth())}
         item{OutlinedTextField(pin,{pin=it},label={Text("New PIN (6–12 digits)")},singleLine=true,visualTransformation=PasswordVisualTransformation(),keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.NumberPassword),enabled=!busy,modifier=Modifier.fillMaxWidth())}

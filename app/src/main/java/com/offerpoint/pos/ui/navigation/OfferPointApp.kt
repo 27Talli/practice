@@ -37,7 +37,6 @@ import com.offerpoint.pos.domain.repository.ShopRepository
 import com.offerpoint.pos.domain.repository.SalesRepository
 import com.offerpoint.pos.ui.components.ErrorNotice
 import com.offerpoint.pos.ui.screens.AppViewModel
-import com.offerpoint.pos.ui.screens.ComingSoonScreen
 import com.offerpoint.pos.ui.screens.DashboardScreen
 import com.offerpoint.pos.ui.screens.InventoryScreen
 import com.offerpoint.pos.ui.screens.LoadingContent
@@ -55,7 +54,6 @@ import com.offerpoint.pos.ui.screens.SalesHistoryScreen
 import com.offerpoint.pos.ui.screens.SalesHistoryViewModel
 import com.offerpoint.pos.ui.screens.SaleDetailsScreen
 import com.offerpoint.pos.ui.screens.SaleDetailsViewModel
-import com.offerpoint.pos.ui.screens.TodaySalesViewModel
 import com.offerpoint.pos.ui.labels.ProductLabelScreen
 import com.offerpoint.pos.ui.labels.CostCodeSettingsScreen
 import com.offerpoint.pos.ui.theme.OfferPointTheme
@@ -272,11 +270,7 @@ private fun OfferPointWorkspace(shopRepository: ShopRepository, productRepositor
                             val shop = appState.shops.firstOrNull { it.id == id } ?: return@composable
                             CostCodeSettingsScreen(shop, barcodeLabelRepository) { nav.popBackStack() }
                         }
-                        composable("coming/{shopId}/{feature}", arguments = listOf(navArgument("shopId") { type = NavType.LongType }, navArgument("feature") { type = NavType.StringType })) { entry ->
-                            val id = entry.arguments?.getLong("shopId") ?: return@composable
-                            val shop = appState.shops.firstOrNull { it.id == id } ?: return@composable
-                            ComingSoonScreen(entry.arguments?.getString("feature") ?: "Feature", shop) { nav.popBackStack() }
-                        }
+
                     }
                 }
             }

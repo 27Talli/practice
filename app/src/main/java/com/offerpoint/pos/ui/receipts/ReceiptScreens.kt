@@ -143,7 +143,7 @@ fun ReceiptSettingsScreen(shop: Shop, repository: ReceiptSettingsRepository, onB
     }
     PosScaffold("Receipts & printing", shop.name, onBack) { padding ->
         if (state.loading) Column(Modifier.padding(padding)) { LoadingContent("Loading receipt settings…") }
-        else LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        else LazyColumn(Modifier.fillMaxSize().padding(padding).imePadding(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item { StatusCard("Offline receipts", "Open any saved sale to preview, share a PDF, or print. Purchase costs and private barcode codes never appear on a receipt.") }
             item { Text("Default paper size", style = MaterialTheme.typography.titleMedium); PaperChoices(ReceiptPaper.valueOf(paperName), { paperName = it.name }, !state.saving) }
             item { OutlinedTextField(footer, { footer = it }, label = { Text("Receipt footer") }, supportingText = { Text("Optional; up to 240 characters. No return policy is added automatically.") }, minLines = 2, maxLines = 5, enabled = !state.saving, modifier = Modifier.fillMaxWidth()) }

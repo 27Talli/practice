@@ -8,7 +8,7 @@ An offline Android POS for Offer Point, Shop No. 8, Yahya Khan Market, Neher Cho
 
 Use Android Studio Ladybug 2024.2.1 or newer compatible with AGP 8.7.3, JDK 17, Android SDK Platform 35, Build Tools 35.0.0, platform-tools, and Gradle 8.9. All dependency versions are pinned in `gradle/libs.versions.toml`; they are the versions used by the earlier successful builds. Open the repository root in Android Studio, select JDK 17 for Gradle, let dependencies sync, and choose `liveDebug` or `demoDebug` in Build Variants. The app supports Android 8.0/API 26 and later. Development dependencies require downloading once; the installed application and all tests run without a service or backend.
 
-The small checked-in launch scripts bootstrap the pinned Gradle distribution with checksum verification. A binary wrapper JAR is deliberately not required. Android Studio can also use an installed Gradle 8.9 distribution. If Gradle's artifact download is unavailable, follow `scripts/bootstrap-gradle.sh` or `scripts/bootstrap-gradle.ps1`; do not change dependency versions at random or enable insecure repositories.
+The small checked-in launch scripts bootstrap the official Gradle wrapper with published checksum verification. A binary wrapper JAR is deliberately not required. Android Studio can also use an installed Gradle 8.9 distribution. If Gradle's artifact download is unavailable, follow `scripts/bootstrap-gradle.sh` or `scripts/bootstrap-gradle.ps1`; do not change dependency versions at random or enable insecure repositories.
 
 ```sh
 chmod +x gradlew
