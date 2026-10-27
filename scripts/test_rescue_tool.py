@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Host integration checks using actual exported legacy schemas; no phone or network required."""
 import base64
+from contextlib import closing
 import hashlib
 import json
 from pathlib import Path
@@ -47,7 +48,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='offer-point-host-tests-') as temporary:
         folder = Path(temporary)
         for version in (3, 4):
-            with fixture(folder / f'v{version}.db', version) as db:
+            with closing(fixture(folder / f'v{version}.db', version)) as db:
                 payload = folder / f'v{version}.json'; rescue.write_payload(db,payload,False,1_792_987_200_000)
                 parsed = json.loads(payload.read_text())
                 assert parsed['databaseVersion'] == 5 and len(parsed['tables']) == 18

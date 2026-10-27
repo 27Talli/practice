@@ -3,6 +3,7 @@
 Requires Python 3, JDK 17+, adb and USB debugging. See docs/SAFE_UPGRADES.md first.
 """
 import argparse
+from contextlib import closing
 import getpass
 import hashlib
 import json
@@ -136,9 +137,9 @@ def rescue(args, password):
         if not local.exists(): raise ValueError('Expected POS database was not found')
         # SQLite reads the copied WAL; backup() creates a coherent local snapshot without device writes.
         clean = folder / 'coherent.db'
-        with sqlite3.connect(local) as source, sqlite3.connect(clean) as target: source.backup(target)
+        with closing(sqlite3.connect(local)) as source, closing(sqlite3.connect(clean)) as target: source.backup(target)
         payload = folder / 'payload.json'
-        with sqlite3.connect(clean) as connection: write_payload(connection, payload, args.demo)
+        with closing(sqlite3.connect(clean)) as connection: write_payload(connection, payload, args.demo)
         checksum = encrypt_verified(payload, args.output.resolve(), password)
         print('Encrypted rescue backup verified:', args.output.resolve())
         print('SHA-256:', checksum)

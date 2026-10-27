@@ -85,3 +85,7 @@ For local release builds, provide `POS_SIGNING_STORE_FILE`, `POS_STORE_PASSWORD`
 ```
 
 Release assembly is refused without a retained key and credentials. Once an installation uses the retained key, future higher-version APKs signed with that same key can update it without removing its database. Keep version codes increasing. The first switch from an older differently signed debug installation still requires the preservation/verification procedure above; a new release key cannot update that installation directly.
+
+## Verification for this delivery
+
+Run 40494409192 passed both APK builds, 101 JVM tests per variant, 94 native Android tests, lint/signatures, host rescue conversion/encryption and an isolated test-key release build. The test-key APK/key were deleted and were not published. Owner signing secrets were absent, so no retained-key production release was produced. An additional host-only connection-lifetime cleanup was verified with the host self-test locally; it changes no APK code or backup format. Physical USB rescue, real document providers and production-key deployment still require acceptance on the owner's hardware/account.

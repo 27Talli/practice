@@ -1,64 +1,71 @@
 # Delivery verification
 
-## Milestone 5 (0.5.0) — verification pending
+## Verified Milestone 5 (0.5.0)
 
-Encrypted backups, controlled restore, dataset-state isolation, rescue tooling and retained-key signing configuration are implemented. The new Android workflow has not completed. Results below apply to the prior Milestone 4 build. Local host tests passed for historical-schema conversion and Java encryption/decrypt verification; Android restore and signing-path verification remain pending.
-
-## Verified Milestone 4 (0.4.0)
-
-[GitHub Actions run 40458420557](https://github.com/27Talli/practice/actions/runs/40458420557) completed successfully on **27 October 2026**, building source commit `8415d712892fd90618091c93a328afd8dc985f40`.
+[GitHub Actions run 40494409192](https://github.com/27Talli/practice/actions/runs/40494409192) completed successfully on **27 October 2026**, building Android source commit `fb9ff19982eb7caa959217ee13b6ce2cd537a89b`.
 
 | Check | Actual result |
 | --- | --- |
 | Live debug APK | Built; APK v2 signature verified |
 | Demo debug APK | Built; APK v2 signature verified |
-| JVM tests, Live | 87 passed; 0 failures/errors/skipped |
-| JVM tests, Demo | 87 passed; 0 failures/errors/skipped |
+| JVM tests, Live | 101 passed; 0 failures/errors/skipped |
+| JVM tests, Demo | 101 passed; 0 failures/errors/skipped |
 | Live Android lint | Passed |
-| Android 35 emulator tests | 75 passed; 0 failures/errors/skipped |
+| Android 35 emulator tests | 94 passed; 0 failures/errors/skipped |
+| Release signing path | Demo release built and signature verified with an isolated unpublished TEST key |
+| Owner-retained production signing | Not configured; no production release published |
+| Host rescue-tool tests | Actual legacy schemas 3/4 converted, encrypted/decrypted and byte-verified successfully |
 
-The new JVM tests cover exact receipt amounts, discounts/change, zero and maximum totals, private-cost exclusion, immutable sale projections, shop matching, Demo flags, Pakistan timestamps, preferences validation and receipt/settings ViewModel recovery. Earlier checkout, barcode, cost-code and inventory tests remain in the suite.
+The JVM suite now includes authenticated multi-chunk encryption, wrong-password/tamper/truncation/reordering rejection, empty/final chunk authentication, passphrase validation/wiping, backup ViewModel recovery and workspace write-gate concurrency. Existing price, quantity, checkout, camera decoding, label and receipt tests remain.
 
-The Android suite uses real Room/SQLite and native Android PDF APIs. Receipt tests export and rasterize A4/58 mm/80 mm PDFs, check pagination/margins, repeated Demo markers and sale identity, long-name/amount wrapping, FileProvider access and cancellation. Print-engine tests reflow after media changes, write only requested pages into a valid PDF and report cancelled layout/writes. The thin Android PrintDocumentAdapter forwards the OS-owned callbacks to that engine; a physical printer/Android print service was not exercised in CI.
+Native Android tests use real Room/SQLite, cryptography, a test-only document provider, and the actual exported schemas. Backup coverage includes encrypted read-verified export, both shops, sales retry identities, stock/history/cost keys/label/receipt settings, reopening after restore, recovery-backup reuse, wrong passwords and corrupted/unsupported inputs, barcode collisions, broken foreign keys, invalid stock, Live/Demo separation, rejected recovery destinations, forced insert rollback, concurrent changes during recovery I/O, discarded/tampered previews, exact Long.MAX_VALUE prices/quantities, and cancellation after commit. A host-generated encrypted legacy fixture is restored on Android and its historical sale remains idempotent.
 
-Database tests cover independent persistent shop preferences, validation/auditing, forced rollback and repeated exports without changed sales, stock, ledger, audit history or sale counters. Catalog edits do not change receipt item snapshots. The existing Compose test now completes cash checkout, reopens its saved history, opens the receipt preview, verifies share/print actions and checks unchanged sale count/stock.
+Restore tests also prove that previously issued SKU/receipt/row counters retain higher values when older records are restored. New cost labels have random numeric revisions; an alias lost by restoring older data is not recreated. A native PDF test rasterizes a revised Code 128 label and decodes the exact value. The Compose suite verifies that a dataset generation change resets navigation/unpaid carts, in addition to completing checkout and opening saved receipts. No business data installation is used by tests.
 
-Migration tests use actual historical Room schemas through 1 → 2 → 3 → 4. The explicit 3 → 4 test preserves existing sales/retry identities, selection, inventory, counters, cost-code keys and old label aliases, then generates a receipt for the historical sale. Current generated `4.json` was recovered from the successful run and verified by SHA-256; historical `1.json`, `2.json` and `3.json` were unchanged. No destructive fallback is configured.
+Migration tests validate actual historical schemas through 1 → 2 → 3 → 4 → 5. Schema 5 adds only the persistent dataset-generation field; there is no destructive fallback. The generated `5.json` was recovered from this successful run and SHA-256 verified. Historical schema files 1–4 remained unchanged.
 
 ## APK downloads
 
-- [Live APK ZIP](https://github.com/27Talli/practice/actions/runs/40458420557/artifacts/12713711535)
-- [Demo APK ZIP — recommended for testing](https://github.com/27Talli/practice/actions/runs/40458420557/artifacts/12713641865)
-- [Test/lint reports, schemas, checksums and emulator logs](https://github.com/27Talli/practice/actions/runs/40458420557/artifacts/12713736704)
+- [Live APK ZIP](https://github.com/27Talli/practice/actions/runs/40494409192/artifacts/12730582455)
+- [Demo APK ZIP — recommended for testing](https://github.com/27Talli/practice/actions/runs/40494409192/artifacts/12729982795)
+- [Test/lint reports, schemas, checksums and emulator logs](https://github.com/27Talli/practice/actions/runs/40494409192/artifacts/12729284663)
 
-Extract the ZIP and install its `.apk` on Android **8.0 or newer**. GitHub may require sign-in. Artifacts are retained until **25 January 2027**; the workflow can create fresh builds. Live and Demo have separate IDs/databases; Demo labels and receipts are visibly marked.
+Extract the ZIP and install its `.apk` on Android **8.0 or newer**. GitHub may require sign-in. Artifacts are retained until **25 January 2027**. Live and Demo have separate application IDs/data; their backups cannot be mixed.
 
 SHA-256 of the APK files inside the ZIPs:
 
 ```text
-7b8012a4f3e44de054431f23dd06eeb5be4ebf2ca8fd0a4802020c8a50aff444  app-live-debug.apk
-216fcf67512ff60fb98edfc1aa89ef66f0cca7da56d71fc41267197e5f4341d1  app-demo-debug.apk
+f0830de1c2cd962adc6000739760210e88137ce8037234be7be5fd82685f63a6  app-live-debug.apk
+5911153628f38891c282c7d235adc73fd51b29c11422ce94b55cd930e923838a  app-demo-debug.apk
 ```
 
-## Reproduction and practical limits
+## Reproduction
 
-The workflow uses Java 17, Gradle 8.9, Android SDK/Build Tools 35 and the existing pinned dependency catalog. Receipt PDF/printing uses Android APIs and adds no dependency or permission.
+The workflow uses Java 17, Gradle 8.9, Android SDK/Build Tools 35 and the unchanged pinned dependency catalog. Backups use platform cryptography/SQLite and add no dependency or permission.
 
 ```sh
+python3 scripts/test_rescue_tool.py
+python3 scripts/check_schema.py
 ./gradlew :app:assembleLiveDebug :app:assembleDemoDebug \
   :app:testLiveDebugUnitTest :app:testDemoDebugUnitTest \
   :app:lintLiveDebug :app:assembleLiveDebugAndroidTest
 ./gradlew :app:connectedLiveDebugAndroidTest
 ```
 
-The device suite ran on a headless Android 35 x86_64 emulator with KVM. **Real printer output, Android print-service compatibility, physical paper sizing, camera focus/lighting and printed-label readability need acceptance on the shop hardware.** Receipt PDF content/rendering and the print engine were verified automatically. Direct Bluetooth/USB ESC/POS pairing is deferred until the printer model/connection is known; 58/80 mm PDF pages are not raw thermal-printer commands.
+The host test regenerates a synthetic encrypted test asset. An additional host-only follow-up explicitly closes SQLite connections before temporary-file cleanup; its host suite was rerun successfully on local Java 21/Python. It changes neither Android runtime/test source nor the backup format. Documentation and schema follow-ups contain no APK runtime changes. The Android source above is the exact code used for the APKs and native test results.
 
-These are **debug/evaluation builds**. GitHub-hosted runners generate ephemeral debug signing keys, so an existing installation may reject a new APK as an update. **Do not uninstall or clear business data to resolve a signing mismatch.** Production updates require a securely retained private release signing key and a data-preserving upgrade process. Room migration success does not override Android's signing-key requirement.
+## Signing and practical limits
 
-The cost code remains obfuscation, not encryption; there is no staff PIN. Receipts never print purchase costs or private code keys. Receipt item/payment values come from saved sale snapshots; shop branding and the optional footer use current local shop/settings records. PDF cache files are regenerable and are not backups. Returns/refunds, financial reports, expense entry and backup/restore remain deferred. Controlled backups and stable signed upgrades are the recommended next milestone.
+The release signing path compiled and verified with a temporary TEST key, and that key/APK were deleted without publication. The workflow reported that the four owner signing secrets are absent. Therefore the downloadable APKs remain **debug/evaluation builds with temporary debug keys**. Do not describe them as stable retained-key production releases. Setup is concrete and documented in [SAFE_UPGRADES.md](docs/SAFE_UPGRADES.md), with local key-generation and CI-staging scripts. No signing key is committed, cached or published.
 
-The workspace has Java 21 but lacks the Android SDK and an installed Gradle distribution; GitHub Actions supplied the actual JDK 17 build/emulator. Supplemental local checks passed for all 18 reflected entities and 35 DAO queries, XML/catalog parsing and Python/shell syntax. These supplement the actual Android checks above.
+**Do not uninstall or clear business data to resolve a signing mismatch.** Existing debug keys cannot be recreated from an APK certificate. The local rescue tool supports earlier debuggable database versions 3/4 and current version 5, encrypts its output and never clears or uninstalls the source app. Independently verify a restore on another device/local emulator before removing any old installation. No real phone data was accessed during development.
+
+Physical ADB/USB rescue, Android storage-provider behavior, off-device file retention, printer output and camera/printed-label quality require hardware acceptance. The emulator suite ran on Android 35 x86_64 with KVM. Native crypto/restore and host-tool interoperability passed; a production owner key/deployment and physical storage/printer devices were not available.
+
+Backup format 1 supports schema 5, up to 128 MiB plaintext/two million rows and the documented field/sale limits. Restoration replaces both shops, requires a new verified recovery copy, preserves higher previously used counters, and clears unpaid carts. Passphrases are not recoverable or persisted. Automatic backup scheduling and repair of a physically corrupt SQLite database remain deferred. Staff PINs, returns/refunds, financial reports, direct thermal pairing, expense entry, multi-device sync and official logos are not implemented.
+
+The workspace lacks an Android SDK/installed Gradle distribution; GitHub Actions supplied the actual build and emulator. Local supplemental checks passed for all 18 reflected entities/37 DAO queries, XML/catalog parsing, Python/shell syntax and host rescue conversion/encryption.
 
 ## Earlier baseline
 
-[Milestone 3 run 40448504832](https://github.com/27Talli/practice/actions/runs/40448504832), source `18bbdeea0b80574abcda7d1d5ef3a728363b335e`, passed both APK builds, 72 JVM tests per variant, lint, signatures and 62 Android tests. [Milestone 2 run 40355529395](https://github.com/27Talli/practice/actions/runs/40355529395) passed 37 JVM tests per variant and 41 Android tests.
+[Milestone 4 run 40458420557](https://github.com/27Talli/practice/actions/runs/40458420557), source `8415d712892fd90618091c93a328afd8dc985f40`, passed both APKs, 87 JVM tests per variant, lint/signatures and 75 Android tests. Milestone 3 passed 72 JVM tests per variant and 62 Android tests.
