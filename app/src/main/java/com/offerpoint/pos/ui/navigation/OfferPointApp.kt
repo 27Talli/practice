@@ -50,11 +50,14 @@ import com.offerpoint.pos.ui.screens.TodaySalesViewModel
 import com.offerpoint.pos.ui.labels.ProductLabelScreen
 import com.offerpoint.pos.ui.labels.CostCodeSettingsScreen
 import com.offerpoint.pos.ui.theme.OfferPointTheme
+import com.offerpoint.pos.domain.repository.ReceiptSettingsRepository
+import com.offerpoint.pos.ui.receipts.ReceiptScreen
+import com.offerpoint.pos.ui.receipts.ReceiptSettingsScreen
 import kotlinx.coroutines.flow.collect
 
 /** Root UI entry point; startup/seeding is performed once by its retained ViewModel. */
 @Composable
-fun OfferPointApp(shopRepository: ShopRepository, productRepository: ProductRepository, inventoryRepository: InventoryRepository, salesRepository: SalesRepository, barcodeLabelRepository: BarcodeLabelRepository) {
+fun OfferPointApp(shopRepository: ShopRepository, productRepository: ProductRepository, inventoryRepository: InventoryRepository, salesRepository: SalesRepository, barcodeLabelRepository: BarcodeLabelRepository, receiptSettingsRepository: ReceiptSettingsRepository) {
     OfferPointTheme {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             val appViewModel: AppViewModel = viewModel(factory = PosViewModelFactory { AppViewModel(shopRepository) })
@@ -134,9 +137,21 @@ fun OfferPointApp(shopRepository: ShopRepository, productRepository: ProductRepo
                             val vm: SaleDetailsViewModel = viewModel(entry, factory = PosViewModelFactory { SaleDetailsViewModel(salesRepository, id, saleId) })
                             val state by vm.state.collectAsStateWithLifecycle()
                             SaleDetailsScreen(shop, state, entry.arguments?.getBoolean("completed") == true, vm::load,
+                                onReceipt = { nav.navigate("receipt/$id/$saleId") },
                                 onNewSale = {
                                     nav.navigate("checkout/$id") { popUpTo(entry.destination.id) { inclusive = true } }
                                 }, onBack = { nav.popBackStack() })
+                        }
+                        composable("receipt/{shopId}/{saleId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType }, navArgument("saleId") { type = NavType.LongType })) { entry ->
+                            val id = entry.arguments?.getLong("shopId") ?: return@composable
+                            val shop = appState.shops.firstOrNull { it.id == id } ?: return@composable
+                            val saleId = entry.arguments?.getLong("saleId") ?: return@composable
+                            ReceiptScreen(shop, saleId, salesRepository, receiptSettingsRepository) { nav.popBackStack() }
+                        }
+                        composable("receipt-settings/{shopId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType })) { entry ->
+                            val id = entry.arguments?.getLong("shopId") ?: return@composable
+                            val shop = appState.shops.firstOrNull { it.id == id } ?: return@composable
+                            ReceiptSettingsScreen(shop, receiptSettingsRepository) { nav.popBackStack() }
                         }
                         composable("products/{shopId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType })) { entry ->
                             val id = entry.arguments?.getLong("shopId") ?: return@composable
@@ -166,7 +181,7 @@ fun OfferPointApp(shopRepository: ShopRepository, productRepository: ProductRepo
                         composable("settings/{shopId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType })) { entry ->
                             val id = entry.arguments?.getLong("shopId") ?: return@composable
                             val shop = appState.shops.firstOrNull { it.id == id } ?: return@composable
-                            SettingsScreen(shop, appState.databaseStatus, { nav.popBackStack() }, { nav.navigate("costcodes/$id") }, { nav.navigate("shops") })
+                            SettingsScreen(shop, appState.databaseStatus, { nav.popBackStack() }, { nav.navigate("costcodes/$id") }, { nav.navigate("receipt-settings/$id") }, { nav.navigate("shops") })
                         }
                         composable("label/{shopId}/{productId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType }, navArgument("productId") { type = NavType.LongType })) { entry ->
                             val id = entry.arguments?.getLong("shopId") ?: return@composable

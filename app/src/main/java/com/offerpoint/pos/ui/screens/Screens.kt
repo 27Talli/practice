@@ -364,7 +364,7 @@ internal fun InventoryScreen(
 }
 
 @Composable
-internal fun SettingsScreen(shop: Shop, databaseStatus: String, onBack: () -> Unit, onCostCodes: () -> Unit, onSwitch: () -> Unit) {
+internal fun SettingsScreen(shop: Shop, databaseStatus: String, onBack: () -> Unit, onCostCodes: () -> Unit, onReceipts: () -> Unit, onSwitch: () -> Unit) {
     PosScaffold("Settings", shop.name, onBack) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
@@ -387,7 +387,7 @@ internal fun SettingsScreen(shop: Shop, databaseStatus: String, onBack: () -> Un
             }
             item { StatusCard("Offline status", "Offline ready. All product and stock records are saved on this device. No internet connection or account is required.") }
             item { StatusCard("Database status", databaseStatus) }
-            item { StatusCard("Receipt printer · Coming soon", "Printer pairing and receipt settings will be available in a later milestone.") }
+            item { OutlinedButton(onClick = onReceipts, modifier = Modifier.fillMaxWidth().height(54.dp)) { Text("Receipts & printing") } }
             item { StatusCard("Backups · Coming soon", "Manual backup and restore will be added later. Until then, do not uninstall the app or clear its data when it contains business records.") }
         }
     }

@@ -17,6 +17,7 @@ import com.offerpoint.pos.data.repository.RoomInventoryRepository
 import com.offerpoint.pos.data.repository.RoomBarcodeLabelRepository
 import com.offerpoint.pos.data.repository.RoomProductRepository
 import com.offerpoint.pos.data.repository.RoomSalesRepository
+import com.offerpoint.pos.data.repository.RoomReceiptSettingsRepository
 import com.offerpoint.pos.data.repository.RoomShopRepository
 import com.offerpoint.pos.domain.model.ProductDraft
 import com.offerpoint.pos.ui.navigation.OfferPointApp
@@ -70,7 +71,7 @@ class CheckoutUiTest {
     val rules: TestRule = RuleChain.outerRule(isolatedDatabase).around(compose)
 
     @Test fun cashierCanCompleteACashSaleAndReopenItsSavedHistory() {
-        compose.setContent { OfferPointApp(shops, products, inventory, sales, labels) }
+        compose.setContent { OfferPointApp(shops, products, inventory, sales, labels, RoomReceiptSettingsRepository(database)) }
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText("Your retail workspace").fetchSemanticsNodes().isNotEmpty()
         }
@@ -108,6 +109,19 @@ class CheckoutUiTest {
             compose.onAllNodesWithText("Saved transaction").fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithText("UI test lipstick").assertExists()
-        runBlocking { assertEquals(1, database.posDao().countSales()) }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("View / print receipt"))
+        compose.onNodeWithText("View / print receipt").performClick()
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithText("Receipt preview").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Share receipt PDF"))
+        compose.onNodeWithText("Share receipt PDF").assertIsEnabled()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Print receipt"))
+        compose.onNodeWithText("Print receipt").assertIsEnabled()
+        compose.onNodeWithText("‹ Back").performClick()
+        runBlocking {
+            assertEquals(1, database.posDao().countSales())
+            assertEquals(2L, products.getProduct(1, productId)?.quantity)
+        }
     }
 }

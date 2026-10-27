@@ -3,6 +3,22 @@ package com.offerpoint.pos.data.local.database
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
+/** Receipt preferences are additive. Saved sales, labels and stock remain untouched. */
+val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS receipt_settings (
+                shopId INTEGER NOT NULL,
+                paper TEXT NOT NULL,
+                footer TEXT NOT NULL,
+                updatedAt INTEGER NOT NULL,
+                PRIMARY KEY(shopId),
+                FOREIGN KEY(shopId) REFERENCES shops(id) ON UPDATE NO ACTION ON DELETE RESTRICT
+            )
+        """.trimIndent())
+    }
+}
+
 /** Add checkout metadata without rebuilding or deleting any Milestone 1 business table. */
 val MIGRATION_1_2: Migration = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {

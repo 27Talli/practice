@@ -1,5 +1,9 @@
 # Delivery verification
 
+## Milestone 4 (0.4.0) — verification pending
+
+Customer-safe receipts, offline PDF sharing, Android printing, per-shop receipt settings and an additive Room 3 → 4 migration are implemented. The new workflow has not yet completed. Results below describe the prior verified Milestone 3 build only.
+
 ## Verified Milestone 3 (0.3.0)
 
 [GitHub Actions run 40448504832](https://github.com/27Talli/practice/actions/runs/40448504832) completed successfully on **27 October 2026**, building source commit `18bbdeea0b80574abcda7d1d5ef3a728363b335e`.

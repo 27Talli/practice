@@ -263,3 +263,9 @@ data class ProductLabelEntity(
     val alphabetSnapshot: String,
     val createdAt: Long,
 )
+
+@Entity(
+    tableName = "receipt_settings",
+    foreignKeys = [ForeignKey(entity = ShopEntity::class, parentColumns = ["id"], childColumns = ["shopId"], onDelete = ForeignKey.RESTRICT)],
+)
+data class ReceiptSettingsEntity(@PrimaryKey val shopId: Long, val paper: String, val footer: String, val updatedAt: Long)

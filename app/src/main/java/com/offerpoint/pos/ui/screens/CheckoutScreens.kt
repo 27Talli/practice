@@ -240,7 +240,7 @@ internal fun CheckoutScreen(
                             Button(onClick = onPay, enabled = !state.locked && state.totals != null && state.changePaise != null,
                                 modifier = Modifier.fillMaxWidth().height(56.dp)) { Text(if (state.saving) "Saving sale…" else "Complete cash sale") }
                             Text("This saves a real sale and deducts stock for ${shop.name}.", Modifier.padding(top = 8.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Receipt generation and printing are coming soon.", Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Open the saved sale to share or print its receipt.", Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -305,7 +305,7 @@ internal fun SalesHistoryScreen(shop: Shop, state: SalesHistoryState, onRetry: (
 }
 
 @Composable
-internal fun SaleDetailsScreen(shop: Shop, state: SaleDetailsState, justCompleted: Boolean, onRetry: () -> Unit, onNewSale: () -> Unit, onBack: () -> Unit) {
+internal fun SaleDetailsScreen(shop: Shop, state: SaleDetailsState, justCompleted: Boolean, onRetry: () -> Unit, onReceipt: () -> Unit, onNewSale: () -> Unit, onBack: () -> Unit) {
     PosScaffold(if (justCompleted) "Sale saved" else "Sale details", shop.name, onBack) { padding ->
         when {
             state.loading -> Column(Modifier.fillMaxSize().padding(padding)) { LoadingContent("Opening the saved sale…") }
@@ -316,6 +316,7 @@ internal fun SaleDetailsScreen(shop: Shop, state: SaleDetailsState, justComplete
                         StatusCard(if (justCompleted) "Sale completed" else "Saved transaction", "${sale.summary.receiptNumber}\n${saleDate(sale.summary.completedAt)}\n${shop.name}")
                         if (justCompleted) Text("The sale and stock deductions were saved together.", Modifier.padding(top = 10.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    item { OutlinedButton(onClick = onReceipt, modifier = Modifier.fillMaxWidth().height(54.dp)) { Text("View / print receipt") } }
                     items(sale.items) { item ->
                         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp)) {
                             Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -339,7 +340,7 @@ internal fun SaleDetailsScreen(shop: Shop, state: SaleDetailsState, justComplete
                             }
                         }
                     }
-                    item { Text("Receipt generation, printing, and returns are coming soon.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    item { Text("Receipts are available above. Returns are coming soon.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     item { Button(onClick = onNewSale, modifier = Modifier.fillMaxWidth().height(54.dp)) { Text("Start a new sale") } }
                 }
             }

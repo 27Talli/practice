@@ -40,6 +40,12 @@ data class ProductLabelRow(
 
 @Dao
 interface PosDao {
+    @Query("SELECT * FROM receipt_settings WHERE shopId = :shopId")
+    suspend fun getReceiptSettings(shopId: Long): ReceiptSettingsEntity?
+
+    @Upsert
+    suspend fun upsertReceiptSettings(settings: ReceiptSettingsEntity)
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertShops(shops: List<ShopEntity>)
 
