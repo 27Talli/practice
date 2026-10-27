@@ -31,13 +31,26 @@ def gh(*args, output=None):
                           capture_output=output is None, timeout=180)
 
 
-def api(path, missing_ok=False):
+def api(path):
     result = subprocess.run(['gh', 'api', path], capture_output=True,
                             text=True, timeout=90)
-    if missing_ok and result.returncode and 'HTTP 404' in result.stderr:
-        return None
-    result.check_returncode()
+    if result.returncode:
+        raise RuntimeError(result.stderr.strip() or 'GitHub API request failed.')
     return json.loads(result.stdout)
+
+
+def release_for_tag():
+    # A new draft may not have a Git tag yet, so releases/tags/{tag} can return
+    # 404 even to its creator. The authenticated releases list includes drafts.
+    page = 1
+    while True:
+        releases = api(f'repos/{REPOSITORY}/releases?per_page=100&page={page}')
+        for release in releases:
+            if release['tag_name'] == TAG:
+                return release
+        if len(releases) < 100:
+            return None
+        page += 1
 
 
 def verify_archive(archive_path, filename, zip_hash, apk_hash, destination):
@@ -92,11 +105,13 @@ The exact files passed both builds, lint, **160 JVM tests per variant** and **13
 **Debug evaluation builds, Android 8.0 or newer.** Their signing key differs from the earlier 1.1.0-rc1 build. Android blocks an in-place update across those keys. Keep the existing business app/data and follow the [safe upgrade guide](https://github.com/{REPOSITORY}/blob/main/docs/SAFE_UPGRADES.md) before migrating; never uninstall or clear business data just to bypass a signature error. Permanent owner signing and phone/printer acceptance are still required for production deployment.
 ''')
 
-        release = api(f'repos/{REPOSITORY}/releases/tags/{TAG}', missing_ok=True)
+        release = release_for_tag()
         if release is None:
             gh('release', 'create', TAG, '--repo', REPOSITORY, '--target', SOURCE,
                '--title', 'Offer Point POS 1.2.0-rc1', '--notes-file', str(notes), '--draft', '--prerelease')
-            release = api(f'repos/{REPOSITORY}/releases/tags/{TAG}')
+            release = release_for_tag()
+            if release is None:
+                raise RuntimeError('The new draft release could not be found.')
         if release['target_commitish'] != SOURCE or not release['prerelease']:
             raise RuntimeError('An existing release has different provenance; it was not overwritten.')
 
