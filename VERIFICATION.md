@@ -27,7 +27,15 @@ The real Compose navigation tests complete a sale with no refund action on its s
 
 No runtime dependency, app permission or business schema was added. The APK still has **no Internet permission**. Customer receipt models and QR payloads contain no purchase costs, profit, private label codes or PINs.
 
-## APK downloads
+## Direct APK downloads
+
+- [Live APK](https://github.com/27Talli/practice/releases/download/v1.2.0-rc1/OfferPointPOS-1.2.0-rc1-live.apk)
+- [Demo APK](https://github.com/27Talli/practice/releases/download/v1.2.0-rc1/OfferPointPOS-1.2.0-rc1-demo.apk)
+- [SHA-256 checksums](https://github.com/27Talli/practice/releases/download/v1.2.0-rc1/SHA256SUMS.txt)
+
+[Publication run 40547939196](https://github.com/27Talli/practice/actions/runs/40547939196) succeeded on 27 October 2026. It verified the completed Android build run/source, both artifact ZIP hashes and both inner APK hashes, then published the exact bytes as a prerelease at tag `v1.2.0-rc1`, pointing to the verified app source. No app rebuild or re-signing occurred. Release assets do not require GitHub sign-in or ZIP extraction and are independent of Actions artifact expiry. The debug signing/upgrade limitation below still applies. Both direct APK URLs were independently downloaded without authentication: HTTP 200, full file lengths 13,447,452 / 13,447,464 bytes, and SHA-256 hashes matching the verified Live / Demo builds.
+
+## Original build artifacts (ZIPs)
 
 - [Live APK ZIP](https://github.com/27Talli/practice/actions/runs/40541624294/artifacts/12752855177)
 - [Demo APK ZIP — for testing](https://github.com/27Talli/practice/actions/runs/40541624294/artifacts/12752496448)
