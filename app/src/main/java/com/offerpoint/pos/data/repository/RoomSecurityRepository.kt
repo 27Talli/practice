@@ -43,7 +43,7 @@ class RoomSecurityRepository(private val db:PosDatabase,private val alias:String
         dao.upsertSecurity(row.copy(failedAttempts=attempts,lockedUntil=if(delay==0L)0 else now()+delay,updatedAt=now()))
         valid
     }}
-    override suspend fun configure(current:CharArray,newPin:CharArray?,minutes:Int)=withContext(Dispatchers.IO){
+    override suspend fun configure(current:CharArray,newPin:CharArray?,minutes:Int):Unit=withContext(Dispatchers.IO){
         require(minutes in 1..30){"Choose an auto-lock time of 1–30 minutes."}
         newPin?.let{require(it.size in 6..12 && it.all{ch->ch in '0'..'9'}){"Use 6–12 digits for the local PIN."}}
         require(verify(current)){"The current PIN was not correct."}
@@ -54,6 +54,7 @@ class RoomSecurityRepository(private val db:PosDatabase,private val alias:String
                 try{dao.upsertSecurity(OwnerSecurityEntity(salt=Base64.getEncoder().encodeToString(salt),pinHash=Base64.getEncoder().encodeToString(hash),failedAttempts=0,lockedUntil=0,autoLockMinutes=minutes,updatedAt=now()))}finally{hash.fill(0)}
             }
             dao.insertAudit(AuditEventEntity(entityType="SECURITY",entityId=1,shopId=null,action=if(newPin==null)"DISABLE_LOCAL_PIN" else "SET_LOCAL_PIN",beforeValue=null,afterValue=null,createdAt=now()))
+            Unit
         }
     }
     override suspend fun resetAfterDeviceCredential(){db.withWriteTransaction{
