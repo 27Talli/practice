@@ -154,6 +154,13 @@ class CheckoutViewModel(
 
     fun retryProducts() { retry.value += 1 }
 
+    /** A price-check scan must not become a sale scan when its private panel closes. */
+    fun pauseScanningForStaff() {
+        if (mutableState.value.locked) return
+        mutableState.update { it.copy(scanPaused = true) }
+        persist()
+    }
+
     /** Navigation callbacks check live state, including the frame before Compose recomposes. */
     fun canLeaveCheckout(): Boolean = !mutableState.value.locked
 

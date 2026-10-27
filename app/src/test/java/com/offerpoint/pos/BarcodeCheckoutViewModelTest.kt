@@ -47,6 +47,22 @@ class BarcodeCheckoutViewModelTest {
     private fun model(handle: SavedStateHandle = SavedStateHandle()) =
         CheckoutViewModel(products, sales, 1, handle, labels) { "barcode-checkout" }.also(models::add)
 
+    @Test fun closingAStaffLookupCannotAutomaticallyAddItsStillVisibleBarcodeToTheCart() = runTest(dispatcher) {
+        val handle = SavedStateHandle()
+        val model = model(handle)
+        model.pauseScanningForStaff()
+        assertTrue(model.state.value.scanPaused)
+        assertEquals(true, handle.get<Boolean>("scanPaused"))
+        model.scanBarcode("0012345", "CODE_128")
+        runCurrent()
+        assertTrue(model.state.value.cart.isEmpty()); assertEquals(0, products.lookups)
+        model.scanNextItem()
+        model.scanBarcode("0012345", "CODE_128")
+        runCurrent()
+        assertEquals(1L,model.state.value.cart.single().quantity)
+        assertTrue(sales.requests.isEmpty())
+    }
+
     @Test fun aScannedProductIsAddedOnceAndNeedsExplicitRearming() = runTest(dispatcher) {
         val model = model()
         model.scanBarcode("0012345", "CODE_128")

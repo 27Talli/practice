@@ -129,7 +129,7 @@ internal fun CheckoutScreen(
                     state.scannedCostCode?.let { code ->
                         Text("Private purchase-cost code: $code", style = MaterialTheme.typography.labelLarge)
                     }
-                    Text("Use the top-corner staff icon for selling price, purchase cost and sale profit.", style = MaterialTheme.typography.bodySmall)
+                    Text("Use the top-corner staff icon for prices and sale profit. After a staff lookup, tap Scan next item to resume checkout scanning.", style = MaterialTheme.typography.bodySmall)
                     if (state.error != null && !state.recoveryRequired) ErrorNotice(state.error)
                     if (state.scanPaused) Button(onClick = onScanNext, enabled = !state.locked,
                         modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Scan next item") }

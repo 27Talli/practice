@@ -180,7 +180,8 @@ private fun OfferPointWorkspace(shopRepository: ShopRepository, productRepositor
                                     }
                                 }, onBack = { if (vm.canLeaveCheckout()) nav.popBackStack() },
                                 staffActions = { onVisible -> StaffToolsAction(shop, productRepository, barcodeLabelRepository,
-                                    cart = state.cart.map { it.requestLine() }, orderDiscount = state.orderDiscount, enabled = !state.locked, onVisibilityChanged = onVisible) })
+                                    cart = state.cart.map { it.requestLine() }, orderDiscount = state.orderDiscount, enabled = !state.locked,
+                                    onVisibilityChanged = { visible -> if (visible) vm.pauseScanningForStaff(); onVisible(visible) }) })
                         }
                         composable("sales/{shopId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType })) { entry ->
                             val id = entry.arguments?.getLong("shopId") ?: return@composable
