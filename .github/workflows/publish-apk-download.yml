@@ -1,0 +1,30 @@
+name: Publish verified APK download links
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-apk-download.yml'
+      - 'scripts/publish_verified_apks.py'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: publish-verified-apks
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == '27Talli/practice' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out download publisher
+        uses: actions/checkout@v4
+      - name: Verify and publish the already-tested APK bytes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/publish_verified_apks.py
