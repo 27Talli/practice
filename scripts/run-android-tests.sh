@@ -38,6 +38,8 @@ printf 'no\n' | "$avdmanager" create avd --force --name offer-point-ci --package
 
 emulator_pid=''
 cleanup() {
+    mkdir -p "$report_dir/customization-previews"
+    timeout 10 "$adb" -s "$ANDROID_SERIAL" pull /sdcard/Android/data/com.offerpoint.pos/files/customization-previews/. "$report_dir/customization-previews/" >/dev/null 2>&1 || true
     timeout 10 "$adb" -s "$ANDROID_SERIAL" logcat -d > "$report_dir/logcat.txt" 2>&1 || true
     timeout 10 "$adb" -s "$ANDROID_SERIAL" emu kill >/dev/null 2>&1 || true
     if [[ -n "$emulator_pid" ]]; then

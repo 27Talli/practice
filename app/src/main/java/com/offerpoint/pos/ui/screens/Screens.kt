@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -160,56 +161,24 @@ internal fun DashboardScreen(
     onExpenses: () -> Unit,
     onSettings: () -> Unit,
     onSwitch: () -> Unit,
+    onTools: () -> Unit,
+    onCustomize: () -> Unit,
 ) {
-    PosScaffold("Offer Point POS", "Your retail workspace", actions = { TextButton(onClick = onSettings) { Text("Settings") } }) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            item {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), shape = RoundedCornerShape(22.dp)) {
-                    Column(Modifier.fillMaxWidth().padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("CURRENT SHOP", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                            Surface(shape = RoundedCornerShape(100.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)) {
-                                Text("● Offline ready", Modifier.padding(horizontal = 12.dp, vertical = 7.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                            }
-                        }
-                        Text(shop.name, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                        Text(shop.address, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                        Text("Offer Point is the primary workspace. Other shop records remain available in Settings.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                    }
+    val preferences = com.offerpoint.pos.ui.theme.LocalWorkspacePreferences.current
+    PosScaffold(shop.name, "Your retail workspace", actions = { TextButton(onClick = onSettings) { Text("Settings") } }) { padding ->
+        com.offerpoint.pos.ui.customize.CustomizedDashboard(shop, today, preferences, padding, onRetryToday,
+            onOpen = { tile ->
+                when (tile) {
+                    com.offerpoint.pos.domain.model.DashboardTile.PRODUCTS -> onProducts()
+                    com.offerpoint.pos.domain.model.DashboardTile.INVENTORY -> onInventory()
+                    com.offerpoint.pos.domain.model.DashboardTile.CHECKOUT -> onCheckout()
+                    com.offerpoint.pos.domain.model.DashboardTile.SALES -> onSales()
+                    com.offerpoint.pos.domain.model.DashboardTile.RETURNS -> onRefunds()
+                    com.offerpoint.pos.domain.model.DashboardTile.EXPENSES -> onExpenses()
+                    com.offerpoint.pos.domain.model.DashboardTile.REPORTS -> onReports()
+                    else -> Unit
                 }
-            }
-            item {
-                when {
-                    today.loading -> StatusCard("Today’s sales", "Loading saved activity…")
-                    today.error != null -> ErrorNotice(today.error, onRetryToday)
-                    else -> today.sales?.let { sales ->
-                        StatusCard("Today’s net sales · Pakistan time", "${Money.format(sales.totalPaise)}\n${sales.transactionCount} completed ${if (sales.transactionCount == 1) "sale" else "sales"}")
-                    }
-                }
-            }
-            item { Text("At your counter", Modifier.padding(top = 12.dp, bottom = 2.dp), style = MaterialTheme.typography.titleLarge) }
-            item { ShortcutCard("Products", "Add, edit, and find products", "MANAGE", onProducts) }
-            item { ShortcutCard("Inventory", "View quantities and adjust stock", "MANAGE", onInventory) }
-            item { ShortcutCard("Checkout", "Record a cash sale and deduct stock", "CASH SALE", onCheckout) }
-            item { ShortcutCard("Sales history", "Open completed transactions", "VIEW", onSales) }
-            item { ShortcutCard("Returns & refunds", "Saved refunds and original receipt links", "VIEW", onRefunds) }
-            item { ShortcutCard("Expenses", "Record and review shop expenses", "MANAGE", onExpenses) }
-            item { ShortcutCard("Reports", "Net sales, costs, profit and CSV export", "VIEW", onReports) }
-            item { Text("Saved locally on this device · No account required", Modifier.padding(vertical = 12.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        }
-    }
-}
-
-@Composable
-private fun ShortcutCard(title: String, subtitle: String, label: String, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-        }
+            }, onTools = onTools, onCustomize = onCustomize)
     }
 }
 
@@ -369,7 +338,7 @@ internal fun InventoryScreen(
 }
 
 @Composable
-internal fun SettingsScreen(shop: Shop, databaseStatus: String, onBack: () -> Unit, onCostCodes: () -> Unit, onReceipts: () -> Unit, onBackups: () -> Unit, onSecurity: () -> Unit, onSwitch: () -> Unit) {
+internal fun SettingsScreen(shop: Shop, databaseStatus: String, onBack: () -> Unit, onCostCodes: () -> Unit, onReceipts: () -> Unit, onBackups: () -> Unit, onSecurity: () -> Unit, onSwitch: () -> Unit, onCustomize: () -> Unit) {
     PosScaffold("Settings", shop.name, onBack) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
@@ -390,6 +359,7 @@ internal fun SettingsScreen(shop: Shop, databaseStatus: String, onBack: () -> Un
                     }
                 }
             }
+            item { OutlinedButton(onClick=onCustomize,modifier=Modifier.fillMaxWidth().heightIn(min = 54.dp)){Text("Customize app")} }
             item { OutlinedButton(onClick=onSecurity,modifier=Modifier.fillMaxWidth().height(52.dp)){Text("Local app PIN & lock")} }
             item { StatusCard("Offline status", "Offline ready. All product and stock records are saved on this device. No internet connection or account is required.") }
             item { StatusCard("Database status", databaseStatus) }

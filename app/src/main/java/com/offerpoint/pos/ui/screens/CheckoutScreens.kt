@@ -44,6 +44,7 @@ import com.offerpoint.pos.domain.model.Product
 import com.offerpoint.pos.domain.model.Shop
 import com.offerpoint.pos.domain.usecase.BusinessDay
 import com.offerpoint.pos.domain.usecase.Money
+import com.offerpoint.pos.ui.theme.LocalWorkspacePreferences
 import com.offerpoint.pos.ui.components.EmptyState
 import com.offerpoint.pos.ui.components.ErrorNotice
 import com.offerpoint.pos.ui.components.StatusCard
@@ -74,7 +75,8 @@ internal fun CheckoutScreen(
     onBack: () -> Unit,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
-    var section by rememberSaveable(shop.id) { mutableStateOf(if (shop.code == "OP") "scan" else "products") }
+    val workspacePreferences = LocalWorkspacePreferences.current
+    var section by rememberSaveable(shop.id) { mutableStateOf(workspacePreferences.checkoutSection(shop.code)) }
     var revealCost by rememberSaveable { mutableStateOf(false) }
     var discarding by rememberSaveable { mutableStateOf(false) }
     var editingId by rememberSaveable { mutableStateOf<Long?>(null) }

@@ -6,6 +6,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import com.offerpoint.pos.domain.model.DashboardTile
+import com.offerpoint.pos.domain.model.WorkspacePreferencesSnapshot
+import com.offerpoint.pos.domain.repository.WorkspacePreferencesRepository
+import com.offerpoint.pos.ui.customize.*
+import com.offerpoint.pos.ui.theme.LocalWorkspacePreferences
 import androidx.compose.runtime.key
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
@@ -73,13 +79,25 @@ private data class WorkspaceGeneration(val value:String?=null,val error:String?=
 
 /** Root UI entry point; startup/seeding is performed once by its retained ViewModel. */
 @Composable
-fun OfferPointApp(shopRepository: ShopRepository, productRepository: ProductRepository, inventoryRepository: InventoryRepository, salesRepository: SalesRepository, barcodeLabelRepository: BarcodeLabelRepository, receiptSettingsRepository: ReceiptSettingsRepository, backupRepository: BackupRepository, refundRepository:RefundRepository, expenseRepository:ExpenseRepository, reportRepository:ReportRepository, securityRepository:SecurityRepository, onLock:()->Unit = {}) {
+fun OfferPointApp(shopRepository: ShopRepository, productRepository: ProductRepository, inventoryRepository: InventoryRepository, salesRepository: SalesRepository, barcodeLabelRepository: BarcodeLabelRepository, receiptSettingsRepository: ReceiptSettingsRepository, backupRepository: BackupRepository, refundRepository:RefundRepository, expenseRepository:ExpenseRepository, reportRepository:ReportRepository, securityRepository:SecurityRepository, workspaceRepository:WorkspacePreferencesRepository, onLock:()->Unit = {}) {
+    val preferences by remember(workspaceRepository) { workspaceRepository.observe() }
+        .collectAsStateWithLifecycle(initialValue = WorkspacePreferencesSnapshot(ready = false))
+    CompositionLocalProvider(LocalWorkspacePreferences provides preferences.value) {
+        OfferPointTheme {
+            WorkspaceRoot(shopRepository, productRepository, inventoryRepository, salesRepository, barcodeLabelRepository, receiptSettingsRepository, backupRepository, refundRepository, expenseRepository, reportRepository, securityRepository, workspaceRepository, onLock, preferences.ready)
+        }
+    }
+}
+
+@Composable
+private fun WorkspaceRoot(shopRepository: ShopRepository, productRepository: ProductRepository, inventoryRepository: InventoryRepository, salesRepository: SalesRepository, barcodeLabelRepository: BarcodeLabelRepository, receiptSettingsRepository: ReceiptSettingsRepository, backupRepository: BackupRepository, refundRepository:RefundRepository, expenseRepository:ExpenseRepository, reportRepository:ReportRepository, securityRepository:SecurityRepository, workspaceRepository:WorkspacePreferencesRepository, onLock:()->Unit, preferencesReady: Boolean) {
     var retry by remember { mutableStateOf(0) }
     val generations = remember(backupRepository,retry) { backupRepository.observeGeneration().map { WorkspaceGeneration(value=it) }.catch { emit(WorkspaceGeneration(error=it.message ?: "The local database could not be opened.")) } }
     val generation by generations.collectAsStateWithLifecycle(initialValue=WorkspaceGeneration())
     val holder = rememberSaveableStateHolder()
     var previousGeneration by rememberSaveable { mutableStateOf<String?>(null) }
     if(generation.error != null) { OfferPointTheme { Column(Modifier.padding(24.dp)) { ErrorNotice(generation.error!!,{retry++}) } }; return }
+    if (!preferencesReady) { LoadingContent("Opening your app layout…"); return }
     if(generation.value == null) { LoadingContent("Checking the local workspace…"); return }
     val currentGeneration = generation.value!!
     LaunchedEffect(currentGeneration) {
@@ -88,13 +106,13 @@ fun OfferPointApp(shopRepository: ShopRepository, productRepository: ProductRepo
     }
     key(currentGeneration) {
         holder.SaveableStateProvider(currentGeneration) {
-            OfferPointWorkspace(shopRepository, productRepository, inventoryRepository, salesRepository, barcodeLabelRepository, receiptSettingsRepository, backupRepository, refundRepository, expenseRepository, reportRepository, securityRepository, onLock, currentGeneration)
+            OfferPointWorkspace(shopRepository, productRepository, inventoryRepository, salesRepository, barcodeLabelRepository, receiptSettingsRepository, backupRepository, refundRepository, expenseRepository, reportRepository, securityRepository, workspaceRepository, onLock, currentGeneration)
         }
     }
 }
 
 @Composable
-private fun OfferPointWorkspace(shopRepository: ShopRepository, productRepository: ProductRepository, inventoryRepository: InventoryRepository, salesRepository: SalesRepository, barcodeLabelRepository: BarcodeLabelRepository, receiptSettingsRepository: ReceiptSettingsRepository, backupRepository: BackupRepository, refundRepository:RefundRepository, expenseRepository:ExpenseRepository, reportRepository:ReportRepository, securityRepository:SecurityRepository, onLock:()->Unit, generation: String) {
+private fun OfferPointWorkspace(shopRepository: ShopRepository, productRepository: ProductRepository, inventoryRepository: InventoryRepository, salesRepository: SalesRepository, barcodeLabelRepository: BarcodeLabelRepository, receiptSettingsRepository: ReceiptSettingsRepository, backupRepository: BackupRepository, refundRepository:RefundRepository, expenseRepository:ExpenseRepository, reportRepository:ReportRepository, securityRepository:SecurityRepository, workspaceRepository:WorkspacePreferencesRepository, onLock:()->Unit, generation: String) {
     OfferPointTheme {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             val appViewModel: AppViewModel = viewModel(key="app-$generation", factory = PosViewModelFactory { AppViewModel(shopRepository) })
@@ -138,6 +156,8 @@ private fun OfferPointWorkspace(shopRepository: ShopRepository, productRepositor
                                     onExpenses = { nav.navigate("expenses/${shop.id}") },
                                     onSettings = { nav.navigate("settings/${shop.id}") },
                                     onSwitch = { nav.navigate("shops") },
+                                    onTools = { nav.navigate("tools/${shop.id}") },
+                                    onCustomize = { nav.navigate("customize/${shop.id}") },
                                 )
                             }
                         }
@@ -216,6 +236,32 @@ private fun OfferPointWorkspace(shopRepository: ShopRepository, productRepositor
                             val state by vm.state.collectAsStateWithLifecycle()
                             ReportsScreen(shop,state,vm::load){nav.popBackStack()}
                         }
+                        composable("customize/{shopId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType })) { entry ->
+                            val id = entry.arguments?.getLong("shopId") ?: return@composable
+                            val shop = appState.shops.firstOrNull { it.id == id } ?: return@composable
+                            val vm: WorkspaceCustomizationViewModel = viewModel(entry, factory = viewModelFactory {
+                                initializer { WorkspaceCustomizationViewModel(workspaceRepository, createSavedStateHandle()) }
+                            })
+                            val state by vm.state.collectAsStateWithLifecycle()
+                            WorkspaceCustomizationScreen(shop, vm, state) { nav.popBackStack() }
+                        }
+                        composable("tools/{shopId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType })) { entry ->
+                            val id = entry.arguments?.getLong("shopId") ?: return@composable
+                            val shop = appState.shops.firstOrNull { it.id == id } ?: return@composable
+                            AllToolsScreen(shop, { tile ->
+                                val route = when (tile) {
+                                    DashboardTile.PRODUCTS -> "products"
+                                    DashboardTile.INVENTORY -> "inventory"
+                                    DashboardTile.CHECKOUT -> "checkout"
+                                    DashboardTile.SALES -> "sales"
+                                    DashboardTile.RETURNS -> "refunds"
+                                    DashboardTile.EXPENSES -> "expenses"
+                                    DashboardTile.REPORTS -> "reports"
+                                    else -> null
+                                }
+                                if (route != null) nav.navigate("$route/$id")
+                            }, { nav.navigate("customize/$id") }, { nav.popBackStack() })
+                        }
                         composable("security"){SecuritySettingsScreen(securityRepository,onLock){nav.popBackStack()}}
                         composable("receipt/{shopId}/{saleId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType }, navArgument("saleId") { type = NavType.LongType })) { entry ->
                             val id = entry.arguments?.getLong("shopId") ?: return@composable
@@ -257,7 +303,7 @@ private fun OfferPointWorkspace(shopRepository: ShopRepository, productRepositor
                         composable("settings/{shopId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType })) { entry ->
                             val id = entry.arguments?.getLong("shopId") ?: return@composable
                             val shop = appState.shops.firstOrNull { it.id == id } ?: return@composable
-                            SettingsScreen(shop, appState.databaseStatus, { nav.popBackStack() }, { nav.navigate("costcodes/$id") }, { nav.navigate("receipt-settings/$id") }, { nav.navigate("backups") }, { nav.navigate("security") }, { nav.navigate("shops") })
+                            SettingsScreen(shop, appState.databaseStatus, { nav.popBackStack() }, { nav.navigate("costcodes/$id") }, { nav.navigate("receipt-settings/$id") }, { nav.navigate("backups") }, { nav.navigate("security") }, { nav.navigate("shops") }, { nav.navigate("customize/$id") })
                         }
                         composable("label/{shopId}/{productId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType }, navArgument("productId") { type = NavType.LongType })) { entry ->
                             val id = entry.arguments?.getLong("shopId") ?: return@composable

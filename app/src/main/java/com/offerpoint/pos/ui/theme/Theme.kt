@@ -6,11 +6,16 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
+import com.offerpoint.pos.domain.model.*
+
+val LocalWorkspacePreferences = staticCompositionLocalOf { WorkspacePreferences() }
 
 private val LightColors = lightColorScheme(
     primary = Color(0xFF00796B), onPrimary = Color.White,
@@ -43,7 +48,40 @@ private val PosTypography = Typography(
     labelLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp),
 )
 
+private fun colors(dark: Boolean, accent: AppColor): androidx.compose.material3.ColorScheme {
+    val base = if (dark) DarkColors else LightColors
+    if (accent == AppColor.TEAL) return base
+    val shades = when (accent) {
+        AppColor.BLUE -> if (dark) listOf(0xFFA8C7FA, 0xFF003060, 0xFF194675, 0xFFD6E4FF) else listOf(0xFF1D559C, 0xFFFFFFFF, 0xFFD6E4FF, 0xFF001B3D)
+        AppColor.PURPLE -> if (dark) listOf(0xFFD7BAFF, 0xFF3B195C, 0xFF523274, 0xFFF0DBFF) else listOf(0xFF70438F, 0xFFFFFFFF, 0xFFF0DBFF, 0xFF2A0845)
+        AppColor.AMBER -> if (dark) listOf(0xFFFFBA68, 0xFF482900, 0xFF663E08, 0xFFFFDDB6) else listOf(0xFF805319, 0xFFFFFFFF, 0xFFFFDDB6, 0xFF2B1700)
+        AppColor.TEAL -> error("The default palette is handled above.")
+    }
+    return base.copy(primary = Color(shades[0]), onPrimary = Color(shades[1]), primaryContainer = Color(shades[2]), onPrimaryContainer = Color(shades[3]))
+}
+
+private fun TextStyle.scaled(factor: Float) = copy(
+    fontSize = if (fontSize == TextUnit.Unspecified) fontSize else fontSize * factor,
+    lineHeight = if (lineHeight == TextUnit.Unspecified) lineHeight else lineHeight * factor,
+)
+
+private fun typography(size: AppTextSize): Typography {
+    val scale = size.multiplier
+    return PosTypography.copy(
+        displayLarge = PosTypography.displayLarge.scaled(scale), displayMedium = PosTypography.displayMedium.scaled(scale), displaySmall = PosTypography.displaySmall.scaled(scale),
+        headlineLarge = PosTypography.headlineLarge.scaled(scale), headlineMedium = PosTypography.headlineMedium.scaled(scale), headlineSmall = PosTypography.headlineSmall.scaled(scale),
+        titleLarge = PosTypography.titleLarge.scaled(scale), titleMedium = PosTypography.titleMedium.scaled(scale), titleSmall = PosTypography.titleSmall.scaled(scale),
+        bodyLarge = PosTypography.bodyLarge.scaled(scale), bodyMedium = PosTypography.bodyMedium.scaled(scale), bodySmall = PosTypography.bodySmall.scaled(scale),
+        labelLarge = PosTypography.labelLarge.scaled(scale), labelMedium = PosTypography.labelMedium.scaled(scale), labelSmall = PosTypography.labelSmall.scaled(scale),
+    )
+}
+
 @Composable
-fun OfferPointTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = if (darkTheme) DarkColors else LightColors, typography = PosTypography, content = content)
+fun OfferPointTheme(darkTheme: Boolean? = null, preferences: WorkspacePreferences = LocalWorkspacePreferences.current, content: @Composable () -> Unit) {
+    val dark = darkTheme ?: when (preferences.appearance) {
+        AppAppearance.SYSTEM -> isSystemInDarkTheme()
+        AppAppearance.LIGHT -> false
+        AppAppearance.DARK -> true
+    }
+    MaterialTheme(colorScheme = colors(dark, preferences.color), typography = typography(preferences.textSize), content = content)
 }

@@ -21,6 +21,7 @@ import com.offerpoint.pos.data.repository.RoomSecurityRepository
 import com.offerpoint.pos.data.repository.RoomInventoryRepository
 import com.offerpoint.pos.data.repository.RoomProductRepository
 import com.offerpoint.pos.data.repository.RoomShopRepository
+import com.offerpoint.pos.data.preferences.LocalWorkspacePreferencesRepository
 import com.offerpoint.pos.data.repository.RoomSalesRepository
 import com.offerpoint.pos.data.repository.RoomBarcodeLabelRepository
 import com.offerpoint.pos.domain.repository.InventoryRepository
@@ -31,6 +32,7 @@ import com.offerpoint.pos.domain.repository.BarcodeLabelRepository
 
 /** A single application-scoped graph. Constructor injection keeps repositories testable. */
 class AppContainer(context: Context) {
+    val workspacePreferencesRepository = LocalWorkspacePreferencesRepository(context)
     private val database = Room.databaseBuilder(
         context.applicationContext,
         PosDatabase::class.java,

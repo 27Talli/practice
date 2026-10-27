@@ -2,7 +2,23 @@
 
 An offline Android POS for Offer Point, Shop No. 8, Yahya Khan Market, Neher Chowk, Mardan, Pakistan. Offer Point is the primary workspace. Fancy Footwears remains available as a separate shop with its own stock, prices, sales, receipts, expenses and reports. No account, subscription, server or Internet permission is required.
 
-**Current candidate: 1.0.0-rc1, version code 6, Room schema 6.** The remaining core roadmap is implemented in this candidate: returns/refunds, expenses, financial reports, low-stock alerts, optional local app PIN, and standard direct thermal printing, alongside the existing camera checkout, private cost-code labels, receipts and encrypted backups. See [VERIFICATION.md](VERIFICATION.md) for executed checks and the exact APK source. [Run 40505558229](https://github.com/27Talli/practice/actions/runs/40505558229) passed both APK builds, 121 JVM tests per flavor, 121 Android tests, lint and signatures. Download [Demo](https://github.com/27Talli/practice/actions/runs/40505558229/artifacts/12736325250) for initial testing or [Live](https://github.com/27Talli/practice/actions/runs/40505558229/artifacts/12736220647) after preserving any existing business installation. A real phone/printer acceptance check and an owner-retained signing key are required before shop deployment.
+**Current candidate: 1.1.0-rc1, version code 7, Room schema 6.** The remaining core roadmap is implemented in this candidate: returns/refunds, expenses, financial reports, low-stock alerts, optional local app PIN, and standard direct thermal printing, alongside the existing camera checkout, private cost-code labels, receipts and encrypted backups. See [VERIFICATION.md](VERIFICATION.md) for executed checks and the exact APK source. [Run 40505558229](https://github.com/27Talli/practice/actions/runs/40505558229) passed both APK builds, 121 JVM tests per flavor, 121 Android tests, lint and signatures. Download [Demo](https://github.com/27Talli/practice/actions/runs/40505558229/artifacts/12736325250) for initial testing or [Live](https://github.com/27Talli/practice/actions/runs/40505558229/artifacts/12736220647) after preserving any existing business installation. A real phone/printer acceptance check and an owner-retained signing key are required before shop deployment.
+
+## Customize the app without programming
+
+Open **Settings → Customize app**, or the **Customize app** link at the bottom of the dashboard. This editor controls the existing app's layout and appearance:
+
+- Choose large cards, a two-column grid, or a compact list.
+- Move every dashboard item with **Up / Down**, or choose **Put Checkout first**. The shop card and today's sales can move too.
+- Show/hide dashboard items and give shortcuts your own nicknames. **All tools** and Settings remain available even if you hide everything; hiding a shortcut does not disable its feature or delete records.
+- Choose teal, blue, purple or warm amber, light/dark/phone appearance, and standard/larger/largest text. Android accessibility text scaling still applies.
+- Set whether checkout opens the scanner, product list or cart. All checkout tabs remain available; a current unpaid cart keeps its state when appearance changes.
+- Review the preview and choose **Apply changes**. **Reset customization** resets the preview first and needs Apply to take effect. Leaving an unsaved preview asks whether to discard it.
+- **Save layout file / Load layout file** exports or imports a small validated JSON layout. Loading changes only the preview until you apply it. The file contains no product, stock, sale, cost-key or PIN records.
+
+Customizations are device-local and shared between the two shop workspaces, with Live/Demo isolated by their application sandboxes. Room remains the primary business database; display preferences use private SharedPreferences with checked disk commits. Business backup/restore keeps the receiving device's current layout. Save a separate layout file to use it on another phone. Receipt branding/prices, stock rules, payment calculations, printer settings and PIN settings have their own controls and are not edited by a layout file. Adding a completely new business feature still requires an app update; this is an in-app editor for the existing tools.
+
+The 1.1.0 candidate's new checks are in progress. The linked 1.0.0 build above remains the previously verified baseline until [VERIFICATION.md](VERIFICATION.md) records a successful new run.
 
 ## Open, build and install
 

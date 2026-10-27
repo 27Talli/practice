@@ -1,3 +1,7 @@
+# Customization candidate 1.1.0-rc1 — verification in progress
+
+Version code 7 adds an offline no-code dashboard/appearance editor, shortcut order/nicknames/visibility, a recoverable All tools menu, default checkout section and validated layout-file import/export. Room stays at schema 6; display preferences are separate from business records and backups. No new dependency or app permission is added. Tests/builds for this source are pending until the new run is recorded here. The results below apply to the stated 1.0.0 source only.
+
 # Delivery verification — Offer Point POS 1.0.0-rc1
 
 [GitHub Actions run 40505558229](https://github.com/27Talli/practice/actions/runs/40505558229) completed successfully on **27 October 2026**, building source commit **`701a4feb370663ad7345506a9932705c1b23ed62`**. Version code: **6**. Room database version: **6**.

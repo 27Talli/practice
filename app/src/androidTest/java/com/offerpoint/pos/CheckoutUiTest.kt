@@ -10,9 +10,24 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.graphics.asAndroidBitmap
+import com.offerpoint.pos.domain.model.WorkspacePreferences
+import com.offerpoint.pos.domain.model.DashboardTile
+import com.offerpoint.pos.domain.model.DashboardTilePreference
+import com.offerpoint.pos.domain.model.DashboardLayout
+import com.offerpoint.pos.domain.model.AppColor
+import com.offerpoint.pos.domain.model.AppAppearance
+import com.offerpoint.pos.domain.model.AppTextSize
+import com.offerpoint.pos.domain.model.CheckoutStart
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.offerpoint.pos.data.preferences.LocalWorkspacePreferencesRepository
 import com.offerpoint.pos.data.local.database.PosDatabase
 import com.offerpoint.pos.data.repository.RoomRefundRepository
 import com.offerpoint.pos.data.repository.RoomExpenseRepository
@@ -55,10 +70,13 @@ class CheckoutUiTest {
     private lateinit var sales: RoomSalesRepository
     private lateinit var labels: RoomBarcodeLabelRepository
     private var productId = 0L
+    private lateinit var workspace: LocalWorkspacePreferencesRepository
+    private val preferencesName = "checkout-ui-layout-${System.nanoTime()}"
 
     private val isolatedDatabase = object : ExternalResource() {
         override fun before() {
             val context = ApplicationProvider.getApplicationContext<Context>()
+            workspace = LocalWorkspacePreferencesRepository(context, preferencesName)
             database = Room.inMemoryDatabaseBuilder(context, PosDatabase::class.java).build()
             shops = RoomShopRepository(database, false)
             products = RoomProductRepository(database)
@@ -78,6 +96,7 @@ class CheckoutUiTest {
         override fun after() {
             // Outer rule closes after Compose disposes its content and its Activity.
             if (::database.isInitialized) database.close()
+            ApplicationProvider.getApplicationContext<Context>().deleteSharedPreferences(preferencesName)
         }
     }
 
@@ -87,7 +106,7 @@ class CheckoutUiTest {
     @Test fun changingDatasetGenerationClearsNavigationAndUnpaidCartState() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val backups = RoomBackupRepository(context,database,false)
-        compose.setContent { OfferPointApp(shops,products,inventory,sales,labels,RoomReceiptSettingsRepository(database),backups,RoomRefundRepository(database),RoomExpenseRepository(database),RoomReportRepository(database),RoomSecurityRepository(database)) }
+        compose.setContent { OfferPointApp(shops,products,inventory,sales,labels,RoomReceiptSettingsRepository(database),backups,RoomRefundRepository(database),RoomExpenseRepository(database),RoomReportRepository(database),RoomSecurityRepository(database),workspace) }
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Your retail workspace").fetchSemanticsNodes().isNotEmpty() }
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Checkout"))
         compose.onNodeWithText("Checkout").performClick();compose.onNodeWithText("Products").performClick()
@@ -104,7 +123,7 @@ class CheckoutUiTest {
     }
 
     @Test fun cashierCanCompleteACashSaleAndReopenItsSavedHistory() {
-        compose.setContent { OfferPointApp(shops, products, inventory, sales, labels, RoomReceiptSettingsRepository(database), RoomBackupRepository(ApplicationProvider.getApplicationContext(), database, false),RoomRefundRepository(database),RoomExpenseRepository(database),RoomReportRepository(database),RoomSecurityRepository(database)) }
+        compose.setContent { OfferPointApp(shops, products, inventory, sales, labels, RoomReceiptSettingsRepository(database), RoomBackupRepository(ApplicationProvider.getApplicationContext(), database, false),RoomRefundRepository(database),RoomExpenseRepository(database),RoomReportRepository(database),RoomSecurityRepository(database),workspace) }
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText("Your retail workspace").fetchSemanticsNodes().isNotEmpty()
         }
@@ -161,7 +180,7 @@ class CheckoutUiTest {
     @Test fun cashierCanReturnASavedSaleAndReopenTheRefundReceipt() {
         runBlocking { sales.completeSale(CheckoutRequest("ui-refund-sale",1,listOf(CheckoutLine(productId,1,500)),0,500)) }
         val refunds=RoomRefundRepository(database)
-        compose.setContent { OfferPointApp(shops,products,inventory,sales,labels,RoomReceiptSettingsRepository(database),RoomBackupRepository(ApplicationProvider.getApplicationContext(),database,false),refunds,RoomExpenseRepository(database),RoomReportRepository(database),RoomSecurityRepository(database)) }
+        compose.setContent { OfferPointApp(shops,products,inventory,sales,labels,RoomReceiptSettingsRepository(database),RoomBackupRepository(ApplicationProvider.getApplicationContext(),database,false),refunds,RoomExpenseRepository(database),RoomReportRepository(database),RoomSecurityRepository(database),workspace) }
         compose.waitUntil(15_000){compose.onAllNodesWithText("Your retail workspace").fetchSemanticsNodes().isNotEmpty()}
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Sales history"));compose.onNodeWithText("Sales history").performClick()
         compose.waitUntil(15_000){compose.onAllNodesWithText("OP-S-000001").fetchSemanticsNodes().isNotEmpty()};compose.onNodeWithText("OP-S-000001").performClick()
@@ -182,7 +201,7 @@ class CheckoutUiTest {
         runBlocking {security.configure(charArrayOf(),"123456".toCharArray(),2)}
         val model=SecurityViewModel(security,backups)
         try {
-            compose.setContent { OfferPointTheme {SecureWorkspace(model){OfferPointApp(shops,products,inventory,sales,labels,RoomReceiptSettingsRepository(database),backups,RoomRefundRepository(database),RoomExpenseRepository(database),RoomReportRepository(database),security,model::lock)}} }
+            compose.setContent { OfferPointTheme {SecureWorkspace(model){OfferPointApp(shops,products,inventory,sales,labels,RoomReceiptSettingsRepository(database),backups,RoomRefundRepository(database),RoomExpenseRepository(database),RoomReportRepository(database),security,workspace,model::lock)}} }
             compose.waitUntil(15_000){compose.onAllNodesWithText("App PIN").fetchSemanticsNodes().isNotEmpty()}
             compose.onNodeWithText("App PIN").performTextReplacement("123456");compose.onNodeWithText("Unlock").performClick()
             compose.waitUntil(15_000){compose.onAllNodesWithText("Your retail workspace").fetchSemanticsNodes().isNotEmpty()}
@@ -195,5 +214,64 @@ class CheckoutUiTest {
             compose.onNodeWithText("UI test lipstick").assertExists()
             runBlocking {assertEquals(0,database.posDao().countSales());assertEquals(3L,products.getProduct(1,productId)?.quantity)}
         }finally{model.viewModelScope.cancel();java.security.KeyStore.getInstance("AndroidKeyStore").apply{load(null);deleteEntry(alias)}}
+    }
+
+    private fun openCustomizableApp() {
+        compose.setContent { OfferPointApp(shops,products,inventory,sales,labels,RoomReceiptSettingsRepository(database),RoomBackupRepository(ApplicationProvider.getApplicationContext(),database,false),RoomRefundRepository(database),RoomExpenseRepository(database),RoomReportRepository(database),RoomSecurityRepository(database),workspace) }
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Your retail workspace").fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    private fun captureCustomization(name: String) {
+        val bitmap=compose.onRoot().captureToImage().asAndroidBitmap()
+        val folder=java.io.File(ApplicationProvider.getApplicationContext<Context>().getExternalFilesDir(null),"customization-previews").apply{mkdirs()}
+        java.io.File(folder,name).outputStream().use{assertEquals(true,bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it))}
+    }
+
+    @Test fun ownerCanPreviewReorderRenameAndApplyTheDashboardWithoutCoding() {
+        openCustomizableApp()
+        compose.onNodeWithText("Settings").performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Customize app"))
+        compose.onNodeWithText("Customize app").performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("apply-customization").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Dashboard heading"))
+        compose.onNodeWithText("Dashboard heading").performTextReplacement("My counter")
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Two-column grid"));compose.onNodeWithText("Two-column grid").performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Blue"));compose.onNodeWithText("Blue").performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Product list"));compose.onNodeWithText("Product list").performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Put Checkout first"));compose.onNodeWithText("Put Checkout first").performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Shortcut name: Checkout"))
+        compose.onNodeWithText("Shortcut name: Checkout").performTextReplacement("Sell now")
+        runBlocking { assertEquals(WorkspacePreferences(),workspace.get().value) }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasTestTag("apply-customization"));compose.onNodeWithTag("apply-customization").performClick()
+        compose.waitUntil(15_000) { runBlocking { workspace.get().value.heading=="My counter" } }
+        compose.onNodeWithText("‹ Back").performClick();compose.onNodeWithText("‹ Back").performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("My counter").fetchSemanticsNodes().isNotEmpty() }
+        captureCustomization("dashboard-grid.png")
+        compose.onNodeWithText("Sell now").performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Search name, SKU, or barcode").fetchSemanticsNodes().isNotEmpty() }
+        runBlocking { assertEquals(DashboardTile.CHECKOUT,workspace.get().value.tiles.first().tile);assertEquals(0,database.posDao().countSales());assertEquals(3L,products.getProduct(1,productId)?.quantity) }
+    }
+
+    @Test fun hiddenDashboardToolsRemainAccessibleThroughAllToolsAndSettings() {
+        runBlocking { workspace.save(WorkspacePreferences(tiles=DashboardTile.entries.map{DashboardTilePreference(it,false)})) }
+        openCustomizableApp()
+        compose.onNodeWithText("Your dashboard is clear").assertExists()
+        compose.onNodeWithText("Settings").assertExists();compose.onNodeWithText("Customize app").assertExists()
+        compose.onNodeWithText("All tools").performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Checkout"));compose.onNodeWithText("Checkout").performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Scan an item").fetchSemanticsNodes().isNotEmpty() }
+        runBlocking { assertEquals(0,database.posDao().countSales()) }
+    }
+
+    @Test fun applyingThemeAndLayoutChangesKeepsTheCurrentUnpaidCartAndCheckoutSection() {
+        runBlocking { workspace.save(WorkspacePreferences(checkoutStart=CheckoutStart.PRODUCTS)) }
+        openCustomizableApp()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Checkout"));compose.onNodeWithText("Checkout").performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("+ Add").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("+ Add").performClick();compose.onNodeWithText("Review cart",substring=true).performClick()
+        runBlocking { workspace.save(WorkspacePreferences(layout=DashboardLayout.COMPACT,color=AppColor.PURPLE,appearance=AppAppearance.DARK,textSize=AppTextSize.LARGER,checkoutStart=CheckoutStart.SCAN)) }
+        compose.onNodeWithText("Cart (1)").assertExists();compose.onNodeWithText("UI test lipstick").assertExists()
+        captureCustomization("checkout-dark.png")
+        runBlocking { assertEquals(0,database.posDao().countSales());assertEquals(3L,products.getProduct(1,productId)?.quantity) }
     }
 }

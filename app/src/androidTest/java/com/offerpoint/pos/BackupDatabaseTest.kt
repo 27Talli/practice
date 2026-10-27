@@ -236,6 +236,19 @@ class BackupDatabaseTest {
         val before=fingerprint();failure{backups.restore(preview.token,uri(),password)};assertEquals(before,fingerprint())
     }
 
+    @Test fun businessRestoreKeepsTheReceivingDevicesCurrentDashboardCustomization()=runBlocking {
+        val name="backup-layout-test-${UUID.randomUUID()}"
+        val preferences=com.offerpoint.pos.data.preferences.LocalWorkspacePreferencesRepository(context,name)
+        try {
+            preferences.save(WorkspacePreferences(color=AppColor.PURPLE))
+            val destination=uri();backups.export(destination,password);val preview=backups.inspect(destination,password)
+            val current=WorkspacePreferences(heading="My counter",color=AppColor.AMBER,layout=DashboardLayout.GRID).editTile(DashboardTile.REPORTS,false)
+            preferences.save(current);inventory.adjustStock(1,productId,1,"After snapshot")
+            backups.restore(preview.token,uri(),password)
+            assertEquals(current,preferences.get().value);assertEquals(6L,products.getProduct(1,productId)?.quantity)
+        }finally{context.deleteSharedPreferences(name)}
+    }
+
     @Test fun versionSixBackupKeepsRefundsVoidedExpensesProfilesAndReturnCountersButRetainsThisDevicesPin()=runBlocking {
         val refunds=RoomRefundRepository(db);val expenses=RoomExpenseRepository(db)
         val item=saved.items.single();val first=RefundRequest("backup-return-first",1,saved.summary.id,listOf(RefundLine(item.saleItemId,1,1)),"Colour",19600)

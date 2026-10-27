@@ -18,3 +18,4 @@ captures/
 *.db-shm
 /scratch/
 /output/
+gradle/wrapper/gradle-wrapper.jar
