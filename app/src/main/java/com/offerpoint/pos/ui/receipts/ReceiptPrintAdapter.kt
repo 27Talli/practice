@@ -17,15 +17,27 @@ import com.offerpoint.pos.domain.model.ReceiptPaper
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** OS print completion is not proof of physical printing. This adapter never posts sales or stock. */
-class ReceiptPrintAdapter(private val receipt: ReceiptDocument) : PrintDocumentAdapter() {
+interface ReceiptLayoutResult {
+    fun onLayoutFinished(info: PrintDocumentInfo, changed: Boolean)
+    fun onLayoutCancelled()
+    fun onLayoutFailed(error: CharSequence?)
+}
+
+interface ReceiptWriteResult {
+    fun onWriteFinished(pages: Array<out PageRange>)
+    fun onWriteCancelled()
+    fun onWriteFailed(error: CharSequence?)
+}
+
+/** Real Android PDF work behind a small callback boundary; no inaccessible framework constructors in tests. */
+class ReceiptPrintEngine(private val receipt: ReceiptDocument) {
     private val executor = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
     private val finished = AtomicBoolean(false)
     @Volatile private var layout: ReceiptLayout? = null
 
-    override fun onLayout(oldAttributes: PrintAttributes?, newAttributes: PrintAttributes, cancellationSignal: CancellationSignal,
-                          callback: LayoutResultCallback, extras: Bundle?) {
+    fun layout(oldAttributes: PrintAttributes?, newAttributes: PrintAttributes, cancellationSignal: CancellationSignal,
+               callback: ReceiptLayoutResult) {
         if (finished.get()) { callback.onLayoutCancelled(); return }
         layout = null
         executor.execute {
@@ -45,7 +57,7 @@ class ReceiptPrintAdapter(private val receipt: ReceiptDocument) : PrintDocumentA
         }
     }
 
-    override fun onWrite(pages: Array<out PageRange>, destination: ParcelFileDescriptor, cancellationSignal: CancellationSignal, callback: WriteResultCallback) {
+    fun write(pages: Array<out PageRange>, destination: ParcelFileDescriptor, cancellationSignal: CancellationSignal, callback: ReceiptWriteResult) {
         if (finished.get()) { callback.onWriteCancelled(); return }
         val plan = layout
         if (plan == null) { callback.onWriteFailed("Choose a valid paper size first."); return }
@@ -69,7 +81,7 @@ class ReceiptPrintAdapter(private val receipt: ReceiptDocument) : PrintDocumentA
         }
     }
 
-    override fun onFinish() { finished.set(true); layout = null; executor.shutdownNow() }
+    fun finish() { finished.set(true); layout = null; executor.shutdownNow() }
 
     private fun checkCancelled(signal: CancellationSignal) {
         if (finished.get() || signal.isCanceled || Thread.currentThread().isInterrupted) throw OperationCanceledException()
@@ -85,6 +97,27 @@ class ReceiptPrintAdapter(private val receipt: ReceiptDocument) : PrintDocumentA
         result.add(PageRange(first, last))
         return result.toTypedArray()
     }
+}
+
+/** Android owns its callbacks. This adapter only forwards them to the tested PDF/printing engine. */
+class ReceiptPrintAdapter(receipt: ReceiptDocument) : PrintDocumentAdapter() {
+    private val engine = ReceiptPrintEngine(receipt)
+    override fun onLayout(oldAttributes: PrintAttributes?, newAttributes: PrintAttributes, cancellationSignal: CancellationSignal,
+                          callback: LayoutResultCallback, extras: Bundle?) {
+        engine.layout(oldAttributes, newAttributes, cancellationSignal, object : ReceiptLayoutResult {
+            override fun onLayoutFinished(info: PrintDocumentInfo, changed: Boolean) = callback.onLayoutFinished(info, changed)
+            override fun onLayoutCancelled() = callback.onLayoutCancelled()
+            override fun onLayoutFailed(error: CharSequence?) = callback.onLayoutFailed(error)
+        })
+    }
+    override fun onWrite(pages: Array<out PageRange>, destination: ParcelFileDescriptor, cancellationSignal: CancellationSignal, callback: WriteResultCallback) {
+        engine.write(pages, destination, cancellationSignal, object : ReceiptWriteResult {
+            override fun onWriteFinished(pages: Array<out PageRange>) = callback.onWriteFinished(pages)
+            override fun onWriteCancelled() = callback.onWriteCancelled()
+            override fun onWriteFailed(error: CharSequence?) = callback.onWriteFailed(error)
+        })
+    }
+    override fun onFinish() = engine.finish()
 }
 
 object ReceiptPrinting {

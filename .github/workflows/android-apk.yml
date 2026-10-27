@@ -75,7 +75,7 @@ jobs:
             echo 'Signed debug APKs for Android 8.0 and newer.'
             echo 'Live and Demo have separate application IDs and data.'
             echo 'Barcode decoding is bundled and runs offline; the app requests camera access only for scanning.'
-            echo 'Receipt PDF, print adapter, database, migration, and checkout UI tests run on an Android emulator in a separate step below.'
+            echo 'Receipt PDF, print engine, database, migration, and checkout UI tests run on an Android emulator in a separate step below.'
             echo 'Physical-camera and real-printer output still require acceptance testing on the shop phone and printer.'
             echo
             echo '### SHA-256 checksums'
