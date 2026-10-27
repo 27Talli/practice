@@ -13,7 +13,7 @@ object RefundMath {
         if(total==0L)return lineTotals
         val denominator=BigInteger.valueOf(total)
         val parts=lineTotals.map { BigInteger.valueOf(it).multiply(BigInteger.valueOf(orderDiscount)).divideAndRemainder(denominator) }
-        val allocated=parts.map{it[0].longValueExact()}.toMutableList()
+        val allocated=parts.map{it[0].checkedLong()}.toMutableList()
         var left=Math.subtractExact(orderDiscount,allocated.fold(0L,Math::addExact))
         for(index in parts.indices.sortedWith(compareByDescending<Int>{parts[it][1]}.thenBy{it})) {
             if(left==0L)break;allocated[index]=Math.addExact(allocated[index],1);left--
@@ -22,7 +22,7 @@ object RefundMath {
     }
     fun amount(netLine:Long,sold:Long,previous:Long,quantity:Long):Long {
         require(netLine>=0 && sold>0 && previous>=0 && quantity>0 && Math.addExact(previous,quantity)<=sold) { "Return quantity exceeds the remaining sold quantity." }
-        fun cumulative(q:Long)=BigInteger.valueOf(netLine).multiply(BigInteger.valueOf(q)).divide(BigInteger.valueOf(sold)).longValueExact()
+        fun cumulative(q:Long)=BigInteger.valueOf(netLine).multiply(BigInteger.valueOf(q)).divide(BigInteger.valueOf(sold)).checkedLong()
         return Math.subtractExact(cumulative(previous+quantity),cumulative(previous))
     }
     fun validate(request:RefundRequest):RefundRequest {
@@ -38,4 +38,10 @@ object RefundMath {
         request.lines.sortedBy{it.saleItemId}.forEach{append(';').append(it.saleItemId).append(',').append(it.quantity).append(',').append(it.restockQuantity)}
     })
     fun sha256(text:String)=MessageDigest.getInstance("SHA-256").digest(text.toByteArray(Charsets.UTF_8)).joinToString(""){"%02x".format(it)}
+
+    // BigInteger.longValueExact is only present on Android 12+. bitLength/longValue work on API 26.
+    private fun BigInteger.checkedLong():Long {
+        if(bitLength()>63)throw ArithmeticException("Amount exceeds the supported integer range.")
+        return toLong()
+    }
 }

@@ -45,7 +45,7 @@ class RefundViewModel(private val repository:RefundRepository,private val shopId
         persist();saved["pending"]=true;mutable.update{it.copy(busy=true,recoveryRequired=true,error=null)}
         viewModelScope.launch {
             try { val posted=repository.post(request);saved["pending"]=false;mutable.update{it.copy(completedId=posted.id,busy=false,recoveryRequired=false)} }
-            catch(e:Exception){if(e is CancellationException)throw e;mutable.update{it.copy(busy=false,recoveryRequired=true)};recover();mutable.update{it.copy(error=e.message)}}
+            catch(e:Exception){if(e is CancellationException)throw e;mutable.update{it.copy(busy=false,recoveryRequired=true)};recover();mutable.update{it.copy(error=if(e is ArithmeticException)"This return exceeds the supported stock or amount range. Review the quantities." else e.message)}}
         }
     }
     fun recover(){
@@ -93,6 +93,6 @@ class ReportViewModel(private val repo:ReportRepository,private val shopId:Long)
     init{val date=LocalDate.now(ZoneId.of("Asia/Karachi"));load(date.toString(),date.toString())}
     fun load(from:String,to:String){
         val range=try{val a=LocalDate.parse(from);val b=LocalDate.parse(to);require(!b.isBefore(a));a.atStartOfDay(ZoneId.of("Asia/Karachi")).toInstant().toEpochMilli() to b.plusDays(1).atStartOfDay(ZoneId.of("Asia/Karachi")).toInstant().toEpochMilli()}catch(e:Exception){mutable.update{it.copy(error="Use a valid date range (YYYY-MM-DD), with the end on or after the start.")};return}
-        job?.cancel();mutable.value=ReportState();job=viewModelScope.launch{repo.observe(shopId,range.first,range.second).catch{e->if(e is CancellationException)throw e;mutable.value=ReportState(loading=false,error=e.message ?: "Report totals exceed the supported range.")}.collect{mutable.value=ReportState(false,it)}}
+        job?.cancel();mutable.value=ReportState();job=viewModelScope.launch{repo.observe(shopId,range.first,range.second).catch{e->if(e is CancellationException)throw e;mutable.value=ReportState(loading=false,error=if(e is ArithmeticException)"These totals exceed the supported amount range. Narrow the dates or review recorded values." else e.message ?: "The report could not be calculated.")}.collect{mutable.value=ReportState(false,it)}}
     }
 }

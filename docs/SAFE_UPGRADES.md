@@ -4,7 +4,7 @@
 
 Open **Settings → Backups & restore → Create encrypted backup**. Choose a new `.opbackup` document in Downloads, a USB drive or another trusted location; then set and repeat a passphrase of at least 10 characters. The app encrypts the snapshot before writing it to the selected provider and reads the saved file back to verify its SHA-256. A success message means that verification passed.
 
-The backup includes BOTH shops: products, barcode aliases, prices, balances, stock ledger, sales/item snapshots, idempotency keys, reference counters, refunds and their original-sale links, expenses and voids, low-stock levels, audit history, shop selection, private cost-code keys and receipt preferences. It excludes unpaid carts, camera images, regenerable PDF cache files signing keys and device-local PIN credentials. Keep an off-device copy and a separate record of the passphrase. There is no password recovery service.
+The backup includes BOTH shops: products, barcode aliases, prices, balances, stock ledger, sales/item snapshots, idempotency keys, reference counters, refunds and their original-sale links, expenses and voids, low-stock levels, audit history, shop selection, private cost-code keys and receipt preferences. It excludes unpaid carts, camera images, regenerable PDF cache files, signing keys and device-local PIN credentials. Keep an off-device copy and a separate record of the passphrase. There is no password recovery service.
 
 The Android file picker may show other installed providers. The app does not automatically upload anything or request Internet/storage permissions; choose a location appropriate for your records. A file held only inside the app's private storage is not a safe uninstall backup.
 
