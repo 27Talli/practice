@@ -1,20 +1,16 @@
-# Offer Point POS — Milestone 4 (0.4.0)
+# Offer Point POS — Milestone 5 (0.5.0)
 
 An offline Android retail foundation for **Offer Point** and **Fancy Footwears**, Yahya Khan Market, Neher Chowk, Mardan, Pakistan. One local device and cashier; no accounts, subscriptions, server, or checkout network dependency.
 
-Milestone 4 adds **customer receipts for saved cash sales**, offline PDF sharing, Android printing, A4/58 mm/80 mm layouts and durable per-shop receipt preferences. Offer Point remains the primary shop. Camera scanning, secret cost-code labels, cash checkout, sales history and separate Fancy Footwears data remain available.
+Milestone 5 adds **encrypted local backup, staged validation, controlled restore with a mandatory verified recovery copy, and retained-key release-signing configuration**. Both shops and all business records are included; Live and Demo remain isolated. Existing camera checkout, private cost-code labels and receipts remain available.
 
-Receipt generation is read-only: previewing, exporting, cancelling or reprinting never posts another sale, deducts stock or allocates a new sale reference. Customer receipts exclude purchase costs, staff code keys and cost-label payloads. Direct Bluetooth/USB thermal pairing depends on the printer model and remains deferred; Android printing uses a compatible installed print service.
+[Safe backup and upgrade instructions](docs/SAFE_UPGRADES.md) cover the app flow, passphrases, recovery copies, older debug-build data rescue and operator-owned signing keys. No owner key is generated or committed automatically. Retained-key releases require repository secrets; debug APKs alone do not establish stable signing.
 
-## Current verified build
+## Build verification status
 
-Version **0.4.0** passed [GitHub Actions run 40458420557](https://github.com/27Talli/practice/actions/runs/40458420557): **87 JVM tests per variant**, **75 Android emulator tests**, lint, both APK builds and signature verification. Tests include the checkout-to-receipt UI, native PDF rendering, print-engine page selection/cancellation, and validated Room upgrades through version 4. See [VERIFICATION.md](VERIFICATION.md) for source, checksums and limits.
+Milestone 5 source and tests are implemented; Android verification is pending. The prior verified baseline is [Milestone 4 run 40458420557](https://github.com/27Talli/practice/actions/runs/40458420557). Actual new results and APK links will be recorded in [VERIFICATION.md](VERIFICATION.md) when the workflow completes.
 
-[Download Live APK ZIP](https://github.com/27Talli/practice/actions/runs/40458420557/artifacts/12713711535) · [Download Demo APK ZIP](https://github.com/27Talli/practice/actions/runs/40458420557/artifacts/12713641865)
-
-Extract the ZIP and install its `.apk` on Android 8.0+; GitHub may require sign-in. Artifacts are retained until 25 January 2027.
-
-Use Demo for evaluation; it keeps sample data separate. **Do not uninstall or clear existing business data to resolve a debug signing-key mismatch.** See the signing and upgrade notes below.
+Use Demo for evaluation. **Do not uninstall or clear an installation containing business data to resolve a signing mismatch.** Preserve its data and verify a restore independently before changing signing identities.
 
 ## Requirements and opening the project
 
@@ -86,7 +82,7 @@ Room integration tests require an API 26+ emulator or an attached Android phone.
 ./gradlew :app:connectedLiveDebugAndroidTest
 ```
 
-The **87-test JVM suite** covers validation, exact checkout arithmetic, payment recovery, cost-code boundaries, optical decoding and ViewModel behavior. The **75-test Android suite** includes Room/migration tests, an end-to-end Compose checkout test, and native PDF generation/rendering with barcode decoding and FileProvider access. New tests cover label registration, private cost codes, alias persistence, Live/Demo label namespaces, UPC/EAN ambiguity, scan state and duplicate guards, and version 2 → 3 migration. Executed totals are recorded in VERIFICATION.md. GitHub Actions runs the JVM suite for both variants and the device suite on Android; consult its completed logs and reports for actual results. Coverage includes idempotent shop creation, persistent selection, product insertion/editing/retrieval, search, shop-specific prices and quantities, explicit product association, global internal/manufacturer barcode uniqueness, nonnegative stock, integer overflow, required adjustment reasons, ledger/audit consistency, forced transaction rollback, foreign-key isolation of future sales/returns, and closing/reopening a disk database. Test fixtures are created by tests and never inserted into the live app.
+The JVM suite covers validation, exact checkout arithmetic, payment recovery, cost-code boundaries, optical decoding and ViewModel behavior. The Android suite includes Room/migration tests, an end-to-end Compose checkout test, and native PDF generation/rendering with barcode decoding and FileProvider access. New tests cover label registration, private cost codes, alias persistence, Live/Demo label namespaces, UPC/EAN ambiguity, scan state and duplicate guards, and version 2 → 3 migration. Executed totals are recorded in VERIFICATION.md. GitHub Actions runs the JVM suite for both variants and the device suite on Android; consult its completed logs and reports for actual results. Coverage includes idempotent shop creation, persistent selection, product insertion/editing/retrieval, search, shop-specific prices and quantities, explicit product association, global internal/manufacturer barcode uniqueness, nonnegative stock, integer overflow, required adjustment reasons, ledger/audit consistency, forced transaction rollback, foreign-key isolation of future sales/returns, and closing/reopening a disk database. Test fixtures are created by tests and never inserted into the live app.
 
 A supplemental source-reflected SQLite check can run without Android tooling using Python 3:
 
@@ -134,6 +130,8 @@ app/src/main/java/com/offerpoint/pos/
   ui/scanner/              Camera lifecycle and bundled barcode decoding
   ui/labels/               Private cost settings, label preview and PDF export
   ui/receipts/             Customer-safe previews, PDF layout and Android print adapter
+  ui/backup/               File-picker backup, validation preview and explicit restore
+  data/backup/             Streaming authenticated encryption and exact SQLite snapshots
   ui/components/           Shared touch-friendly controls
   ui/theme/                Placeholder brand colors and typography
   di/                      Application-scoped constructor injection
@@ -151,11 +149,11 @@ Implemented screens:
 - **Sales history/details:** completed sales for the selected shop, immutable item snapshots, receipt references, totals, discounts, cash, change, and Pakistan timestamps.
 - **Barcode labels:** registered Code 128 aliases with a private coded purchase-cost snapshot, preview, staff reveal, 1–100-copy PDF export/share, old-alias compatibility, and visibly marked Demo labels.
 - **Receipts:** saved-sale preview, exact snapshot prices/discounts/cash/change, Pakistan timestamps, shop-specific branding, Demo watermark on every page, PDF sharing and Android printing.
-- **Settings:** app version, current shop, offline/database status, private cost-code key, per-shop receipt paper/footer, Android print settings and optional other-shop access. Backup/restore remains deferred.
+- **Settings:** app version, current shop, offline/database status, private cost-code key, per-shop receipt paper/footer, Android print settings, encrypted backup/restore and optional other-shop access.
 
 ## Database and data rules
 
-The version 4 schema includes all requested business entities:
+The version 5 schema includes all requested business entities:
 
 | Entity | Responsibility |
 | --- | --- |
@@ -179,14 +177,14 @@ Supporting `AppSettings`, `SkuSequence`, `SaleSequence`, and `AuditEvent` tables
 - Shared names/categories/variants/barcodes update across associated shops; the editor warns about this. Prices and quantities are always scoped to the selected shop. Existing-barcode association is an explicit action rather than silent merging.
 - Product creation, initial stock, barcode reservation, SKU allocation, and audit writes commit together. Product edits never set stock; adjustments and ledger inserts commit together with overflow/negative checks.
 - Composite foreign keys prevent future sale/return records from referencing another shop or the wrong original sale/item. Business records use restrictive foreign keys; parent rows are never replaced to update them.
-- The app requests **camera permission only for scanning**. It does not request Internet, account, location, or storage permissions. Camera hardware/autofocus are optional; manual checkout works without them. CameraX and ZXing decode frames entirely on-device, with no model download. Exported PDFs use a private cache subdirectory and temporary FileProvider read access. Android automatic backup is disabled while controlled backup/restore is deferred. All operational data remains in the app's private Room database.
+- The app requests **camera permission only for scanning**. It does not request Internet, account, location, or storage permissions. Camera hardware/autofocus are optional; manual checkout works without them. CameraX and ZXing decode frames entirely on-device, with no model download. Exported PDFs use a private cache subdirectory and temporary FileProvider read access. Android automatic backup remains disabled; controlled encrypted document backup/restore is available through Settings. All operational data remains in the app's private Room database.
 - Timestamps are UTC epoch milliseconds. Daily sales use inclusive-start/exclusive-end `Asia/Karachi` day boundaries and refresh at midnight.
 - Cash is the only payment method. Line discounts are fixed amounts for the entire line; order discounts apply after line discounts. Discounts may reduce a total to zero but never below zero. No taxes, percentage discounts, card payments, or credit rules are invented.
 - Each checkout has one stable request key. Replaying the same request returns the original saved sale; reusing the key with a different payload is rejected. The UI checks saved results after restoration or an uncertain error before enabling changes.
 - Receipt references such as `OP-S-000001` and `FF-S-000001` allocate in the same transaction as the sale. They identify saved sales; receipt documents and Android printing reuse these references and never allocate a second sale.
 - Cart drafts use Android SavedStateHandle for normal process recreation; they are not long-term parked carts. Completed sales are durable Room records. Force-stopping before Android saves UI state may discard an unpaid draft, while completed sales remain accessible in Sales history.
 
-Room exports versioned schemas to `app/schemas`; the workflow includes generated schemas in the `verification-reports` artifact. Actual Room-generated schemas 1, 2, 3 and 4 are committed after successful verification. Explicit migrations preserve business records through 1 → 2 → 3 → 4. **There is no destructive migration fallback.** Future schema changes must increment the version, commit an explicit migration, and add migration tests before release. Keep historical stock and audit rows; deletion/archival workflows are outside this milestone.
+Room exports versioned schemas to `app/schemas`; the workflow includes generated schemas in the `verification-reports` artifact. Historical generated Room schemas 1–4 are committed; schema 5 will be committed after verification. Explicit migrations preserve business records through 1 → 2 → 3 → 4 → 5. The additive dataset generation separates saved navigation/cart state after a restore. **There is no destructive migration fallback.** Future schema changes must increment the version, commit an explicit migration, and add migration tests before release. Keep historical stock and audit rows; deletion/archival workflows are outside this milestone.
 
 ## Secret cost-code labels
 
@@ -212,8 +210,23 @@ Manual acceptance additions:
 4. Change receipt defaults/footer, force-stop/reopen and confirm persistence. Switch shops and verify independent settings and branding.
 5. Update from Milestone 3 using the same signing key and verify existing products, stock, sales, cost-code keys and old barcode labels before making a new sale.
 
+## Backups and signed upgrades
+
+Open **Settings → Backups & restore**. Export a new encrypted `.opbackup` file using a private passphrase, or inspect an existing file. Restore displays its date and counts, requires typing `RESTORE`, and saves/read-verifies a new recovery file before replacing either shop. It replaces both shops in one transaction; it does not merge datasets. A generation marker discards old cart/navigation state after commit. Passphrases never enter Room, SavedStateHandle or saved Compose state. Full details and local rescue tooling are in [docs/SAFE_UPGRADES.md](docs/SAFE_UPGRADES.md).
+
+The snapshot includes all 18 tables, ID/reference counters, private barcode keys and sales retry identities. Money/quantities stay exact integers. Authenticated streaming encryption rejects wrong passphrases, tampering, truncation, reordering and appended bytes. Unknown schema/columns, conflicting barcodes, broken relationships, inconsistent stock/sales and cross-variant restores are rejected before replacement. Limits and storage/provider requirements are documented in the guide.
+
+Manual acceptance additions:
+
+1. On Demo, create products/stock, complete a cash sale, create cost labels and change receipt preferences. Export to local Downloads in airplane mode and keep another copy off-device.
+2. Change a product/stock value, inspect the backup, compare counts/date, confirm `RESTORE`, and save the recovery file. Verify the prior data and saved receipt return, keys/old labels work, and no unpaid cart is reused.
+3. Inspect the recovery file and restore it through a second new recovery destination. Confirm the more recent state can be recovered.
+4. Try a wrong passphrase, corrupt/truncated file, wrong variant, cancelled picker and unwritable destination. No failed operation may replace current shop data.
+5. Reopen after restore and verify persistence. Test SAF behavior on the shop phone and intended USB/storage provider.
+6. Before switching signing identities on an older debug installation, use the documented local rescue path and independently validate a restore without removing the original phone's data.
+
 ## Next milestone and current limits
 
-The next milestone should add **controlled local backup/restore and a stable signed upgrade process**, before using the phone as the sole business record. Direct thermal-printer pairing can be targeted once its model/connection is supplied. Returns/refunds, financial reports and expense entry remain later milestones.
+The next milestone can add **sales returns/refunds with controlled restocking and receipt links**. Direct thermal-printer pairing remains dependent on the supplied printer model. Financial reports and expense entry remain later milestones.
 
-There is no production release signing, backup/restore, staff PIN, multi-device sync, customer records, fractional stock, tax engine, non-cash payment or official logos. Real-printer compatibility, paper sizing and camera/label quality need acceptance on the shop hardware. Test Demo first. Keep a stable private release signing key for production upgrades; never uninstall or clear a business-data installation to resolve a debug signing-key mismatch.
+Owner-controlled release signing is configured but requires the owner's retained key/secrets; CI-generated debug keys are unsuitable for production updates. Old signing keys cannot be recreated from APK certificates. The local rescue tool supports prior debuggable database versions 3/4/5; physical ADB/USB transfer still requires acceptance on the owner's device. There is no staff PIN, automatic backup schedule, multi-device sync, customer registry, fractional stock, tax engine, non-cash payment, automatic corrupt-database repair or official logos. Real storage providers, printer sizing and camera quality need hardware acceptance. Keep encrypted off-device backups, their passphrases and the release key safe.

@@ -1,7 +1,7 @@
 package com.offerpoint.pos.data.repository
 
 import android.database.sqlite.SQLiteException
-import androidx.room.withTransaction
+import com.offerpoint.pos.data.local.database.withWriteTransaction
 import com.offerpoint.pos.data.local.dao.ProductRow
 import com.offerpoint.pos.data.local.database.PosDatabase
 import com.offerpoint.pos.data.local.entity.AppSettingsEntity
@@ -39,7 +39,7 @@ class RoomShopRepository(
     private val dao = database.posDao()
 
     override suspend fun initialize() {
-        database.withTransaction {
+        database.withWriteTransaction {
             val timestamp = now()
             dao.insertShops(listOf(
                 ShopEntity(1, "OP", "Offer Point", "Shop No. 8, Yahya Khan Market, Neher Chowk, Mardan, Pakistan", timestamp, timestamp),
@@ -68,7 +68,7 @@ class RoomShopRepository(
     override fun observeSelectedShop(): Flow<Shop?> = dao.observeSelectedShop().map { it?.toDomain() }
 
     override suspend fun selectShop(shopId: Long) {
-        database.withTransaction {
+        database.withWriteTransaction {
             if (dao.findShop(shopId) == null) throw ValidationException("shop", "This shop does not exist.")
             dao.upsertSettings((dao.getSettings() ?: AppSettingsEntity()).copy(selectedShopId = shopId))
         }
@@ -105,7 +105,7 @@ class RoomProductRepository(
 
     override suspend fun createProduct(shopId: Long, draft: ProductDraft): Long {
         val valid = ProductValidation.validate(draft)
-        return database.withTransaction {
+        return database.withWriteTransaction {
             val shop = dao.findShop(shopId) ?: throw ValidationException("shop", "This shop does not exist.")
             valid.manufacturerBarcode?.let { ensureBarcodeAvailable(it) }
             val timestamp = now()
@@ -125,7 +125,7 @@ class RoomProductRepository(
 
     override suspend fun updateProduct(shopId: Long, productId: Long, draft: ProductDraft) {
         val valid = ProductValidation.validate(draft)
-        database.withTransaction {
+        database.withWriteTransaction {
             val existing = dao.findProduct(productId) ?: throw ValidationException("product", "This product does not exist.")
             val previous = dao.getShopProduct(shopId, productId) ?: throw ValidationException("shop", "This product is not associated with this shop.")
             valid.manufacturerBarcode?.let {
@@ -152,7 +152,7 @@ class RoomProductRepository(
     }
 
     override suspend fun associateProduct(shopId: Long, productId: Long, purchaseCostPaise: Long, sellingPricePaise: Long, openingQuantity: Long) {
-        database.withTransaction {
+        database.withWriteTransaction {
             if (dao.findShop(shopId) == null) throw ValidationException("shop", "This shop does not exist.")
             val product = dao.findProduct(productId) ?: throw ValidationException("product", "This product does not exist.")
             val valid = ProductValidation.validate(ProductDraft(product.name, product.category, product.variant,
@@ -203,7 +203,7 @@ class RoomInventoryRepository(
 
     override suspend fun adjustStock(shopId: Long, productId: Long, delta: Long, reason: String) {
         val validReason = StockValidation.reason(reason)
-        database.withTransaction {
+        database.withWriteTransaction {
             val inventory = dao.getInventory(shopId, productId) ?: throw StockException("This product is not in the selected shop's inventory.")
             val result = StockValidation.resultingQuantity(inventory.quantity, delta)
             val timestamp = now()

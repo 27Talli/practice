@@ -17,6 +17,7 @@ import com.offerpoint.pos.data.repository.RoomInventoryRepository
 import com.offerpoint.pos.data.repository.RoomBarcodeLabelRepository
 import com.offerpoint.pos.data.repository.RoomProductRepository
 import com.offerpoint.pos.data.repository.RoomSalesRepository
+import com.offerpoint.pos.data.repository.RoomBackupRepository
 import com.offerpoint.pos.data.repository.RoomReceiptSettingsRepository
 import com.offerpoint.pos.data.repository.RoomShopRepository
 import com.offerpoint.pos.domain.model.ProductDraft
@@ -70,8 +71,27 @@ class CheckoutUiTest {
     @get:Rule
     val rules: TestRule = RuleChain.outerRule(isolatedDatabase).around(compose)
 
+    @Test fun changingDatasetGenerationClearsNavigationAndUnpaidCartState() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val backups = RoomBackupRepository(context,database,false)
+        compose.setContent { OfferPointApp(shops,products,inventory,sales,labels,RoomReceiptSettingsRepository(database),backups) }
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Your retail workspace").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Checkout"))
+        compose.onNodeWithText("Checkout").performClick();compose.onNodeWithText("Products").performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("+ Add").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("+ Add").performClick()
+        compose.onNodeWithText("Review cart",substring=true).performClick()
+        runBlocking { val settings=requireNotNull(database.posDao().getSettings());database.posDao().upsertSettings(settings.copy(dataGeneration="restored-test-dataset")) }
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Your retail workspace").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Checkout"))
+        compose.onNodeWithText("Checkout").performClick()
+        compose.onNodeWithText("Cart (0)").performClick()
+        compose.onNodeWithText("Your cart is empty").assertExists()
+        runBlocking { assertEquals(0,database.posDao().countSales());assertEquals(3L,products.getProduct(1,productId)?.quantity) }
+    }
+
     @Test fun cashierCanCompleteACashSaleAndReopenItsSavedHistory() {
-        compose.setContent { OfferPointApp(shops, products, inventory, sales, labels, RoomReceiptSettingsRepository(database)) }
+        compose.setContent { OfferPointApp(shops, products, inventory, sales, labels, RoomReceiptSettingsRepository(database), RoomBackupRepository(ApplicationProvider.getApplicationContext(), database, false)) }
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText("Your retail workspace").fetchSemanticsNodes().isNotEmpty()
         }

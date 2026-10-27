@@ -218,7 +218,8 @@ data class AuditEventEntity(
     foreignKeys = [ForeignKey(entity = ShopEntity::class, parentColumns = ["id"], childColumns = ["selectedShopId"], onDelete = ForeignKey.RESTRICT)],
     indices = [Index("selectedShopId")],
 )
-data class AppSettingsEntity(@PrimaryKey val id: Int = 1, val selectedShopId: Long? = null, val demoSeeded: Boolean = false)
+data class AppSettingsEntity(@PrimaryKey val id: Int = 1, val selectedShopId: Long? = null, val demoSeeded: Boolean = false,
+    @ColumnInfo(defaultValue = "''") val dataGeneration: String = "")
 
 @Entity(tableName = "sku_sequences")
 data class SkuSequenceEntity(@PrimaryKey val prefix: String, val nextValue: Long)

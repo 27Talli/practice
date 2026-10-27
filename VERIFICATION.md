@@ -1,5 +1,9 @@
 # Delivery verification
 
+## Milestone 5 (0.5.0) — verification pending
+
+Encrypted backups, controlled restore, dataset-state isolation, rescue tooling and retained-key signing configuration are implemented. The new Android workflow has not completed. Results below apply to the prior Milestone 4 build. Local host tests passed for historical-schema conversion and Java encryption/decrypt verification; Android restore and signing-path verification remain pending.
+
 ## Verified Milestone 4 (0.4.0)
 
 [GitHub Actions run 40458420557](https://github.com/27Talli/practice/actions/runs/40458420557) completed successfully on **27 October 2026**, building source commit `8415d712892fd90618091c93a328afd8dc985f40`.

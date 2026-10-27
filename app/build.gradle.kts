@@ -5,6 +5,9 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+val retainedStore = System.getenv("POS_SIGNING_STORE_FILE")?.takeIf { it.isNotBlank() }
+val retainedSigningReady = retainedStore != null && listOf("POS_STORE_PASSWORD", "POS_KEY_ALIAS", "POS_KEY_PASSWORD").all { !System.getenv(it).isNullOrBlank() }
+
 android {
     namespace = "com.offerpoint.pos"
     compileSdk = 35
@@ -14,8 +17,8 @@ android {
         applicationId = "com.offerpoint.pos"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.4.0"
+        versionCode = 5
+        versionName = "0.5.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
@@ -34,9 +37,18 @@ android {
         }
     }
 
+    val retainedSigning = retainedStore?.takeIf { retainedSigningReady }?.let { path ->
+        signingConfigs.create("retainedRelease") {
+            storeFile = file(path)
+            storePassword = requireNotNull(System.getenv("POS_STORE_PASSWORD"))
+            keyAlias = requireNotNull(System.getenv("POS_KEY_ALIAS"))
+            keyPassword = requireNotNull(System.getenv("POS_KEY_PASSWORD"))
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = retainedSigning
         }
     }
 
@@ -53,6 +65,12 @@ android {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
     sourceSets.getByName("androidTest").assets.srcDir("$projectDir/schemas")
+}
+
+gradle.taskGraph.whenReady {
+    if (allTasks.any { it.name in listOf("assembleLiveRelease", "assembleDemoRelease", "bundleLiveRelease", "bundleDemoRelease") }) {
+        require(retainedSigningReady) { "Release builds require a retained signing key and its credentials. See docs/SAFE_UPGRADES.md; no ephemeral production key is generated." }
+    }
 }
 
 ksp {

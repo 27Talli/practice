@@ -7,6 +7,9 @@ import com.offerpoint.pos.BuildConfig
 import com.offerpoint.pos.data.local.database.PosDatabase
 import com.offerpoint.pos.data.local.database.MIGRATION_1_2
 import com.offerpoint.pos.data.local.database.MIGRATION_2_3
+import com.offerpoint.pos.data.local.database.MIGRATION_4_5
+import com.offerpoint.pos.data.repository.RoomBackupRepository
+import com.offerpoint.pos.domain.repository.BackupRepository
 import com.offerpoint.pos.data.local.database.MIGRATION_3_4
 import com.offerpoint.pos.data.repository.RoomReceiptSettingsRepository
 import com.offerpoint.pos.domain.repository.ReceiptSettingsRepository
@@ -28,10 +31,11 @@ class AppContainer(context: Context) {
         PosDatabase::class.java,
         if (BuildConfig.DEMO_MODE) "offer_point_demo.db" else "offer_point_pos.db",
     ).setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
-        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
         // Deliberately no destructive migration fallback.
         .build()
 
+    val backupRepository: BackupRepository = RoomBackupRepository(context,database,BuildConfig.DEMO_MODE)
     val shopRepository: ShopRepository = RoomShopRepository(database, BuildConfig.DEMO_MODE)
     val productRepository: ProductRepository = RoomProductRepository(database)
     val inventoryRepository: InventoryRepository = RoomInventoryRepository(database)

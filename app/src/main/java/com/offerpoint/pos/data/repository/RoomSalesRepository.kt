@@ -1,6 +1,7 @@
 package com.offerpoint.pos.data.repository
 
 import androidx.room.withTransaction
+import com.offerpoint.pos.data.local.database.withWriteTransaction
 import com.offerpoint.pos.data.local.database.PosDatabase
 import com.offerpoint.pos.data.local.entity.AuditEventEntity
 import com.offerpoint.pos.data.local.entity.InventoryEntity
@@ -42,14 +43,14 @@ class RoomSalesRepository(
         val stable = request.copy(lines = request.lines.toList())
         val totals = CheckoutMath.validate(stable)
         val fingerprint = CheckoutMath.fingerprint(stable)
-        return database.withTransaction {
+        return database.withWriteTransaction {
             val prior = dao.findSaleByRequest(stable.requestId)
             if (prior != null) {
                 if (prior.shopId != stable.shopId || prior.requestFingerprint != fingerprint ||
                     prior.status != "COMPLETED" || prior.completedAt == null) {
                     throw CheckoutException("This checkout identifier was already used for a different sale. Check sales history before starting another sale.")
                 }
-                return@withTransaction details(prior)
+                return@withWriteTransaction details(prior)
             }
 
             val shop = dao.findShop(stable.shopId)

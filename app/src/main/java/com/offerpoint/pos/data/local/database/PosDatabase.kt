@@ -16,9 +16,10 @@ import com.offerpoint.pos.data.local.entity.*
         CostCodeSettingsEntity::class, ProductLabelEntity::class,
         ReceiptSettingsEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class PosDatabase : RoomDatabase() {
+    val writeGate = WorkspaceWriteGate()
     abstract fun posDao(): PosDao
 }

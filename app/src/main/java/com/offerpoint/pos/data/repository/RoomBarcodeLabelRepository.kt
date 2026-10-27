@@ -1,6 +1,6 @@
 package com.offerpoint.pos.data.repository
 
-import androidx.room.withTransaction
+import com.offerpoint.pos.data.local.database.withWriteTransaction
 import com.offerpoint.pos.data.local.dao.ProductLabelRow
 import com.offerpoint.pos.data.local.database.PosDatabase
 import com.offerpoint.pos.data.local.entity.AuditEventEntity
@@ -22,17 +22,17 @@ class RoomBarcodeLabelRepository(
 ) : BarcodeLabelRepository {
     private val dao = database.posDao()
 
-    override suspend fun getOrCreateCostCodeSettings(shopId: Long): CostCodeSettings = database.withTransaction {
+    override suspend fun getOrCreateCostCodeSettings(shopId: Long): CostCodeSettings = database.withWriteTransaction {
         val settings = ensureSettings(shopId)
         CostCodeSettings(settings.shopId, settings.alphabet)
     }
 
     override suspend fun updateCostCodeAlphabet(shopId: Long, alphabet: String) {
         val valid = CostCode.validateAlphabet(alphabet)
-        database.withTransaction {
+        database.withWriteTransaction {
             requireShop(shopId)
             val previous = dao.getCostCodeSettings(shopId)
-            if (previous?.alphabet == valid) return@withTransaction
+            if (previous?.alphabet == valid) return@withWriteTransaction
             val timestamp = now()
             if (previous == null) {
                 dao.insertCostCodeSettings(CostCodeSettingsEntity(shopId, valid, timestamp, timestamp))
@@ -48,7 +48,7 @@ class RoomBarcodeLabelRepository(
         }
     }
 
-    override suspend fun createLabel(shopId: Long, productId: Long): InternalBarcodeLabel = database.withTransaction {
+    override suspend fun createLabel(shopId: Long, productId: Long): InternalBarcodeLabel = database.withWriteTransaction {
         requireShop(shopId)
         val product = dao.findProduct(productId)
             ?: throw ValidationException("product", "This product does not exist.")
@@ -80,7 +80,7 @@ class RoomBarcodeLabelRepository(
                 old.nameSnapshot == product.name && old.variantSnapshot == product.variant &&
                 old.purchaseCostPaise == association.purchaseCostPaise && old.costCode == code &&
                 old.alphabetSnapshot == settings.alphabet) {
-                return@withTransaction dao.getLabelRow(shopId, old.barcodeId)?.toDomain()
+                return@withWriteTransaction dao.getLabelRow(shopId, old.barcodeId)?.toDomain()
                     ?: throw ValidationException("barcode", "The existing label could not be read.")
             }
             if (suffix == Long.MAX_VALUE) throw ValidationException("barcode", "No unique internal label value is available.")

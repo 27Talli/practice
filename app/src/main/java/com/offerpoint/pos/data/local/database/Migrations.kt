@@ -3,6 +3,13 @@ package com.offerpoint.pos.data.local.database
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
+/** Persistent namespace prevents unpaid carts/navigation from a replaced dataset being restored. */
+val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE app_settings ADD COLUMN dataGeneration TEXT NOT NULL DEFAULT ''")
+    }
+}
+
 /** Receipt preferences are additive. Saved sales, labels and stock remain untouched. */
 val MIGRATION_3_4: Migration = object : Migration(3, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {

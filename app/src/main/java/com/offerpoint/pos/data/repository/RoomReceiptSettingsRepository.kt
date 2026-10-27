@@ -1,6 +1,6 @@
 package com.offerpoint.pos.data.repository
 
-import androidx.room.withTransaction
+import com.offerpoint.pos.data.local.database.withWriteTransaction
 import com.offerpoint.pos.data.local.database.PosDatabase
 import com.offerpoint.pos.data.local.entity.AuditEventEntity
 import com.offerpoint.pos.data.local.entity.ReceiptSettingsEntity
@@ -12,7 +12,7 @@ import org.json.JSONObject
 
 class RoomReceiptSettingsRepository(private val database: PosDatabase, private val now: () -> Long = System::currentTimeMillis) : ReceiptSettingsRepository {
     private val dao = database.posDao()
-    override suspend fun getSettings(shopId: Long): ReceiptSettings = database.withTransaction {
+    override suspend fun getSettings(shopId: Long): ReceiptSettings = database.withWriteTransaction {
         require(dao.findShop(shopId) != null) { "This shop does not exist." }
         dao.getReceiptSettings(shopId)?.let { ReceiptSettings(it.shopId, ReceiptPaper.valueOf(it.paper), it.footer) }
             ?: ReceiptSettings(shopId)
@@ -20,10 +20,10 @@ class RoomReceiptSettingsRepository(private val database: PosDatabase, private v
 
     override suspend fun saveSettings(settings: ReceiptSettings) {
         val valid = ReceiptValidation.settings(settings)
-        database.withTransaction {
+        database.withWriteTransaction {
             require(dao.findShop(valid.shopId) != null) { "This shop does not exist." }
             val previous = dao.getReceiptSettings(valid.shopId)
-            if (previous?.paper == valid.paper.name && previous.footer == valid.footer) return@withTransaction
+            if (previous?.paper == valid.paper.name && previous.footer == valid.footer) return@withWriteTransaction
             val next = ReceiptSettingsEntity(valid.shopId, valid.paper.name, valid.footer, now())
             dao.upsertReceiptSettings(next)
             dao.insertAudit(AuditEventEntity(entityType = "RECEIPT_SETTINGS", entityId = valid.shopId, shopId = valid.shopId,

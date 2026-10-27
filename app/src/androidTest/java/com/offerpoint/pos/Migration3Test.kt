@@ -9,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.offerpoint.pos.data.local.database.MIGRATION_3_4
 import com.offerpoint.pos.data.local.database.MIGRATION_2_3
+import com.offerpoint.pos.data.local.database.MIGRATION_4_5
 import com.offerpoint.pos.data.local.database.PosDatabase
 import com.offerpoint.pos.data.repository.RoomBarcodeLabelRepository
 import com.offerpoint.pos.data.repository.RoomProductRepository
@@ -123,7 +124,7 @@ class Migration3Test {
             }
         }
 
-        val room = Room.databaseBuilder(context, PosDatabase::class.java, name).addMigrations(MIGRATION_2_3, MIGRATION_3_4).build()
+        val room = Room.databaseBuilder(context, PosDatabase::class.java, name).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
         try {
             val shops = RoomShopRepository(room, false)
             val products = RoomProductRepository(room)

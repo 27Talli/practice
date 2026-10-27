@@ -11,3 +11,10 @@ captures/
 .cxx/
 *.jks
 *.keystore
+*.p12
+*.opbackup
+*.db
+*.db-wal
+*.db-shm
+/scratch/
+/output/

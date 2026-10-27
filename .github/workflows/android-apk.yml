@@ -14,6 +14,11 @@ on:
       - 'scripts/install-android-sdk.py'
       - 'scripts/run-android-tests.sh'
       - 'scripts/check_schema.py'
+      - 'scripts/*backup*'
+      - 'scripts/*rescue*'
+      - 'scripts/BackupCrypto.java'
+      - 'scripts/stage_signing_key.py'
+      - 'scripts/check_release_signing.py'
       - '.github/workflows/android-apk.yml'
   workflow_dispatch:
 
@@ -53,6 +58,15 @@ jobs:
           test -f "$schema_root/com.offerpoint.pos.data.local.database.PosDatabase/1.json"
           mkdir -p app/schemas
           cp -R "$schema_root/." app/schemas/
+      - name: Check host rescue tool and create interoperability fixture
+        run: python3 scripts/test_rescue_tool.py
+      - name: Stage retained release signing when configured
+        env:
+          POS_KEYSTORE_BASE64: ${{ secrets.POS_KEYSTORE_BASE64 }}
+          POS_STORE_PASSWORD: ${{ secrets.POS_STORE_PASSWORD }}
+          POS_KEY_ALIAS: ${{ secrets.POS_KEY_ALIAS }}
+          POS_KEY_PASSWORD: ${{ secrets.POS_KEY_PASSWORD }}
+        run: python3 scripts/stage_signing_key.py
       - name: Install Android SDK packages
         run: python3 scripts/install-android-sdk.py
       - name: Check schema and SQL design
@@ -70,12 +84,12 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose app/build/outputs/apk/demo/debug/app-demo-debug.apk
           sha256sum app/build/outputs/apk/live/debug/app-live-debug.apk app/build/outputs/apk/demo/debug/app-demo-debug.apk | tee apk-checksums.txt
           {
-            echo '## Offer Point POS Milestone 4'
+            echo '## Offer Point POS Milestone 5'
             echo
             echo 'Signed debug APKs for Android 8.0 and newer.'
             echo 'Live and Demo have separate application IDs and data.'
             echo 'Barcode decoding is bundled and runs offline; the app requests camera access only for scanning.'
-            echo 'Receipt PDF, print engine, database, migration, and checkout UI tests run on an Android emulator in a separate step below.'
+            echo 'Backup/restore, receipt, migration, scanner, and checkout UI tests run on Android below.'
             echo 'Physical-camera and real-printer output still require acceptance testing on the shop phone and printer.'
             echo
             echo '### SHA-256 checksums'
@@ -83,6 +97,30 @@ jobs:
             cat apk-checksums.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Check release signing with an isolated unpublished test key
+        if: env.POS_SIGNING_READY != 'true'
+        run: python3 scripts/check_release_signing.py
+      - name: Build and verify releases with the retained key
+        if: env.POS_SIGNING_READY == 'true'
+        env:
+          POS_STORE_PASSWORD: ${{ secrets.POS_STORE_PASSWORD }}
+          POS_KEY_ALIAS: ${{ secrets.POS_KEY_ALIAS }}
+          POS_KEY_PASSWORD: ${{ secrets.POS_KEY_PASSWORD }}
+        run: |
+          ./gradlew --no-daemon --max-workers=2 :app:assembleLiveRelease :app:assembleDemoRelease
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/live/release/app-live-release.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/demo/release/app-demo-release.apk
+          sha256sum app/build/outputs/apk/live/release/app-live-release.apk app/build/outputs/apk/demo/release/app-demo-release.apk >> apk-checksums.txt
+      - name: Upload retained-key release APKs
+        if: env.POS_SIGNING_READY == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: offer-point-pos-retained-key-releases
+          path: |
+            app/build/outputs/apk/live/release/app-live-release.apk
+            app/build/outputs/apk/demo/release/app-demo-release.apk
+          if-no-files-found: error
+          retention-days: 90
       - name: Upload live APK
         uses: actions/upload-artifact@v4
         with:
@@ -101,6 +139,14 @@ jobs:
           retention-days: 90
       - name: Run database, migration, and checkout UI tests on Android
         run: bash scripts/run-android-tests.sh
+      - name: Remove staged signing key
+        if: always() && env.POS_SIGNING_READY == 'true'
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          Path(os.environ['POS_SIGNING_STORE_FILE']).unlink(missing_ok=True)
+          PY
       - name: Record generated schemas and test totals
         if: always()
         run: |

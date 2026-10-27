@@ -40,6 +40,9 @@ data class ProductLabelRow(
 
 @Dao
 interface PosDao {
+    @Query("SELECT COALESCE((SELECT dataGeneration FROM app_settings WHERE id = 1), '')")
+    fun observeDataGeneration(): Flow<String>
+
     @Query("SELECT * FROM receipt_settings WHERE shopId = :shopId")
     suspend fun getReceiptSettings(shopId: Long): ReceiptSettingsEntity?
 
