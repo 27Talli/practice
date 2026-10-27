@@ -172,7 +172,7 @@ internal fun DashboardScreen(
                         }
                         Text(shop.name, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
                         Text(shop.address, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                        TextButton(onClick = onSwitch) { Text("Switch shop →") }
+                        Text("Offer Point is the primary workspace. Other shop records remain available in Settings.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
                 }
             }
@@ -210,7 +210,7 @@ private fun ShortcutCard(title: String, subtitle: String, label: String, onClick
 }
 
 @Composable
-internal fun ProductsScreen(shop: Shop, state: ProductListState, onQuery: (String) -> Unit, onRetry: () -> Unit, onAdd: () -> Unit, onEdit: (Long) -> Unit, onBack: () -> Unit) {
+internal fun ProductsScreen(shop: Shop, state: ProductListState, onQuery: (String) -> Unit, onRetry: () -> Unit, onAdd: () -> Unit, onEdit: (Long) -> Unit, onLabel: (Long) -> Unit, onBack: () -> Unit) {
     var search by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(search) { onQuery(search) }
     PosScaffold("Products", shop.name, onBack, actions = { TextButton(onClick = onAdd) { Text("+ Add") } }) { padding ->
@@ -226,7 +226,7 @@ internal fun ProductsScreen(shop: Shop, state: ProductListState, onQuery: (Strin
                 }
                 else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
                     item { Text("${state.products.size} ${if (state.products.size == 1) "product" else "products"}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    items(state.products, key = { it.id }) { product -> ProductCard(product, onClick = { onEdit(product.id) }) }
+                    items(state.products, key = { it.id }) { product -> ProductCard(product, onClick = { onEdit(product.id) }, onLabel = { onLabel(product.id) }) }
                 }
             }
         }
@@ -244,7 +244,7 @@ private fun SearchField(value: String, onValueChange: (String) -> Unit) {
 }
 
 @Composable
-private fun ProductCard(product: Product, onClick: () -> Unit) {
+private fun ProductCard(product: Product, onClick: () -> Unit, onLabel: () -> Unit) {
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp)) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
@@ -260,6 +260,7 @@ private fun ProductCard(product: Product, onClick: () -> Unit) {
                 Text("${product.quantity} in stock", style = MaterialTheme.typography.labelLarge, color = if (product.quantity == 0L) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("Edit →", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }
+            OutlinedButton(onClick = onLabel, modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp)) { Text("Barcode label") }
         }
     }
 }
@@ -363,7 +364,7 @@ internal fun InventoryScreen(
 }
 
 @Composable
-internal fun SettingsScreen(shop: Shop, databaseStatus: String, onBack: () -> Unit, onSwitch: () -> Unit) {
+internal fun SettingsScreen(shop: Shop, databaseStatus: String, onBack: () -> Unit, onCostCodes: () -> Unit, onSwitch: () -> Unit) {
     PosScaffold("Settings", shop.name, onBack) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
@@ -379,7 +380,8 @@ internal fun SettingsScreen(shop: Shop, databaseStatus: String, onBack: () -> Un
                         SettingRow("App version", BuildConfig.VERSION_NAME + if (BuildConfig.DEMO_MODE) " · Demo" else "")
                         HorizontalDivider()
                         SettingRow("Current shop", shop.name)
-                        OutlinedButton(onClick = onSwitch, modifier = Modifier.fillMaxWidth()) { Text("Switch shop") }
+                        OutlinedButton(onClick = onCostCodes, modifier = Modifier.fillMaxWidth()) { Text("Staff cost-code key") }
+                        OutlinedButton(onClick = onSwitch, modifier = Modifier.fillMaxWidth()) { Text("Other shop / legacy inventory") }
                     }
                 }
             }

@@ -32,7 +32,7 @@ data class ProductEntity(
 @Entity(
     tableName = "product_barcodes",
     foreignKeys = [ForeignKey(entity = ProductEntity::class, parentColumns = ["id"], childColumns = ["productId"], onDelete = ForeignKey.RESTRICT)],
-    indices = [Index("productId"), Index(value = ["value"], unique = true), Index(value = ["productId", "kind"], unique = true)],
+    indices = [Index("productId"), Index(value = ["value"], unique = true), Index(value = ["productId", "kind"]), Index(value = ["id", "productId"], unique = true)],
 )
 data class ProductBarcodeEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -229,3 +229,37 @@ data class SkuSequenceEntity(@PrimaryKey val prefix: String, val nextValue: Long
     foreignKeys = [ForeignKey(entity = ShopEntity::class, parentColumns = ["id"], childColumns = ["shopId"], onDelete = ForeignKey.RESTRICT)],
 )
 data class SaleSequenceEntity(@PrimaryKey val shopId: Long, val nextValue: Long)
+
+/** Staff-only digit-to-letter mapping. Existing labels retain their own mapping snapshot. */
+@Entity(
+    tableName = "cost_code_settings",
+    foreignKeys = [ForeignKey(entity = ShopEntity::class, parentColumns = ["id"], childColumns = ["shopId"], onDelete = ForeignKey.RESTRICT)],
+)
+data class CostCodeSettingsEntity(
+    @PrimaryKey val shopId: Long,
+    val alphabet: String,
+    val createdAt: Long,
+    val updatedAt: Long,
+)
+
+/** Immutable label history; the barcode alias remains valid after a cost, name, or key change. */
+@Entity(
+    tableName = "product_labels",
+    foreignKeys = [
+        ForeignKey(entity = ProductBarcodeEntity::class, parentColumns = ["id", "productId"], childColumns = ["barcodeId", "productId"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(entity = ShopProductEntity::class, parentColumns = ["shopId", "productId"], childColumns = ["shopId", "productId"], onDelete = ForeignKey.RESTRICT),
+    ],
+    indices = [Index(value = ["barcodeId", "productId"]), Index(value = ["shopId", "productId"])],
+)
+data class ProductLabelEntity(
+    @PrimaryKey val barcodeId: Long,
+    val shopId: Long,
+    val productId: Long,
+    val skuSnapshot: String,
+    val nameSnapshot: String,
+    val variantSnapshot: String,
+    val purchaseCostPaise: Long,
+    val costCode: String,
+    val alphabetSnapshot: String,
+    val createdAt: Long,
+)

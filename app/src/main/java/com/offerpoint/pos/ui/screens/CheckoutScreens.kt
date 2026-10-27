@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -36,6 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.offerpoint.pos.domain.model.Product
 import com.offerpoint.pos.domain.model.Shop
 import com.offerpoint.pos.domain.usecase.BusinessDay
@@ -43,6 +47,7 @@ import com.offerpoint.pos.domain.usecase.Money
 import com.offerpoint.pos.ui.components.EmptyState
 import com.offerpoint.pos.ui.components.ErrorNotice
 import com.offerpoint.pos.ui.components.StatusCard
+import com.offerpoint.pos.ui.scanner.BarcodeCameraScanner
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -54,6 +59,9 @@ internal fun CheckoutScreen(
     onSearch: (String) -> Unit,
     onRetryProducts: () -> Unit,
     onAdd: (Product) -> Unit,
+    onScanBarcode: (String, String) -> Unit,
+    onScanNext: () -> Unit,
+    canChangeSection: () -> Boolean,
     onEditLine: (Long, String, String) -> Boolean,
     onRemove: (Long) -> Unit,
     onOrderDiscount: (String) -> Unit,
@@ -65,11 +73,16 @@ internal fun CheckoutScreen(
     onSaved: (Long) -> Unit,
     onBack: () -> Unit,
 ) {
-    var showingCart by rememberSaveable { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var section by rememberSaveable(shop.id) { mutableStateOf(if (shop.code == "OP") "scan" else "products") }
+    var revealCost by rememberSaveable { mutableStateOf(false) }
     var discarding by rememberSaveable { mutableStateOf(false) }
     var editingId by rememberSaveable { mutableStateOf<Long?>(null) }
     var quantity by rememberSaveable { mutableStateOf("") }
     var discount by rememberSaveable { mutableStateOf("") }
+    val changeSection: (String) -> Unit = { target ->
+        if (canChangeSection()) { revealCost = false; section = target }
+    }
     val requestBack: () -> Unit = {
         if (!state.locked) {
             if (state.cart.isEmpty()) onBack() else discarding = true
@@ -77,11 +90,13 @@ internal fun CheckoutScreen(
     }
     BackHandler(enabled = state.locked || state.cart.isNotEmpty(), onBack = requestBack)
     LaunchedEffect(state.completedSaleId) { state.completedSaleId?.let(onSaved) }
+    LaunchedEffect(state.scanResetKey, state.scannedCostCode) { revealCost = false }
     PosScaffold("Checkout", shop.name, requestBack) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp).imePadding()) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                FilterChip(selected = !showingCart, onClick = { showingCart = false }, label = { Text("Products") })
-                FilterChip(selected = showingCart, onClick = { showingCart = true }, label = { Text("Cart (${state.cart.size})") })
+                FilterChip(selected = section == "scan", onClick = { changeSection("scan") }, label = { Text("Scan") }, enabled = !state.locked)
+                FilterChip(selected = section == "cart", onClick = { changeSection("cart") }, label = { Text("Cart (${state.cart.size})") }, enabled = !state.locked)
+                TextButton(onClick = { changeSection("products") }, enabled = !state.locked) { Text("Products") }
             }
             if (state.recovering || state.saving) Text(
                 if (state.recovering) "Checking the previous checkout…" else "Saving sale and stock together…",
@@ -91,7 +106,44 @@ internal fun CheckoutScreen(
                 ErrorNotice(state.error ?: "Check the previous checkout before making changes.")
                 Button(onClick = onRecover, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Check previous checkout") }
             }
-            if (!showingCart) {
+            if (section == "scan") {
+                Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Scan an item", style = MaterialTheme.typography.titleLarge)
+                    Text("Point the camera at one barcode. A registered item is added to the cart automatically.",
+                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    BarcodeCameraScanner(
+                        enabled = !state.locked && !state.scanPaused,
+                        onBarcode = { value, format ->
+                            // Guard the frame before disposal/recomposition after a tab or lifecycle change.
+                            if (section == "scan" && lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                                revealCost = false
+                                onScanBarcode(value, format)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        resetKey = state.scanResetKey,
+                    )
+                    if (state.scanProcessing) Text("Finding the scanned product…", color = MaterialTheme.colorScheme.primary)
+                    state.scanMessage?.let { StatusCard("Added to cart", it) }
+                    state.scannedCostCode?.let { code ->
+                        Text("Private purchase-cost code: $code", style = MaterialTheme.typography.labelLarge)
+                        TextButton(onClick = { revealCost = !revealCost }) { Text(if (revealCost) "Hide purchase cost" else "Staff: show purchase cost") }
+                        if (revealCost) state.scannedPurchaseCostPaise?.let { cost ->
+                            StatusCard("Purchase cost on this label", "${Money.format(cost)}\nThis is the label's cost snapshot. Checkout prices come from the current inventory record.")
+                        }
+                    }
+                    if (state.error != null && !state.recoveryRequired) ErrorNotice(state.error)
+                    if (state.scanPaused) Button(onClick = { revealCost = false; onScanNext() }, enabled = !state.locked,
+                        modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Scan next item") }
+                    Text("Manufacturer barcodes and your own Code 128 labels are supported. Use Products for items without barcodes.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(12.dp))
+                }
+                Button(onClick = { changeSection("cart") }, enabled = state.cart.isNotEmpty() && !state.scanProcessing,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp).height(54.dp)) {
+                    Text("Review cart (${state.cart.size})" + (state.totals?.let { " · ${Money.format(it.totalPaise)}" } ?: ""))
+                }
+            } else if (section == "products") {
                 OutlinedTextField(state.query, onSearch, label = { Text("Search name, SKU, or barcode") },
                     modifier = Modifier.fillMaxWidth(), singleLine = true,
                     trailingIcon = { if (state.query.isNotEmpty()) TextButton(onClick = { onSearch("") }) { Text("Clear") } })
@@ -124,14 +176,15 @@ internal fun CheckoutScreen(
                     }
                 }
                 if (state.error != null && !state.recoveryRequired) ErrorNotice(state.error)
-                Button(onClick = { showingCart = true }, enabled = state.cart.isNotEmpty(), modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp).height(54.dp)) {
+                Button(onClick = { changeSection("cart") }, enabled = state.cart.isNotEmpty(), modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp).height(54.dp)) {
                     Text("Review cart (${state.cart.size})" + (state.totals?.let { " · ${Money.format(it.totalPaise)}" } ?: ""))
                 }
             } else {
                 LazyColumn(Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    item { Text("Cart & payment", style = MaterialTheme.typography.titleLarge) }
                     if (state.cart.isEmpty()) item {
                         EmptyState("Your cart is empty", "Choose products for ${shop.name}. Stock is deducted only when a sale is completed.")
-                        Button(onClick = { showingCart = false }, modifier = Modifier.fillMaxWidth()) { Text("Choose products") }
+                        Button(onClick = { changeSection("products") }, modifier = Modifier.fillMaxWidth()) { Text("Choose products") }
                     }
                     items(state.cart, key = { it.productId }) { item ->
                         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp)) {
@@ -187,7 +240,7 @@ internal fun CheckoutScreen(
                             Button(onClick = onPay, enabled = !state.locked && state.totals != null && state.changePaise != null,
                                 modifier = Modifier.fillMaxWidth().height(56.dp)) { Text(if (state.saving) "Saving sale…" else "Complete cash sale") }
                             Text("This saves a real sale and deducts stock for ${shop.name}.", Modifier.padding(top = 8.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Camera scanning and receipt printing are coming soon.", Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Receipt generation and printing are coming soon.", Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }

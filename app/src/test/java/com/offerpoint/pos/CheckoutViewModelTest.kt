@@ -218,6 +218,7 @@ class CheckoutViewModelTest {
         override fun observeProducts(shopId: Long, query: String): Flow<List<Product>> = flowOf(rows.filter { it.shopId == shopId })
         override suspend fun getProduct(shopId: Long, productId: Long): Product? = rows.firstOrNull { it.shopId == shopId && it.id == productId }
         override suspend fun findByBarcode(barcode: String): RegisteredProduct? = null
+        override suspend fun findProductForBarcode(shopId: Long, barcode: String): Product? = rows.firstOrNull { it.shopId == shopId && (it.sku == barcode || it.manufacturerBarcode == barcode) }
         override suspend fun createProduct(shopId: Long, draft: ProductDraft): Long = error("Not used by checkout")
         override suspend fun updateProduct(shopId: Long, productId: Long, draft: ProductDraft) = error("Not used by checkout")
         override suspend fun associateProduct(shopId: Long, productId: Long, purchaseCostPaise: Long, sellingPricePaise: Long, openingQuantity: Long) = error("Not used by checkout")

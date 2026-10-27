@@ -53,7 +53,7 @@ class PosDatabaseTest {
         assertEquals(2, seeded.size)
         assertEquals(setOf("Offer Point", "Fancy Footwears"), seeded.map { it.name }.toSet())
         assertTrue(seeded.all { "Mardan" in it.address })
-        assertNull(shops.observeSelectedShop().first())
+        assertEquals(OP, shops.observeSelectedShop().first()?.id)
         assertTrue(products.observeProducts(OP).first().isEmpty())
         assertTrue(products.observeProducts(FF).first().isEmpty())
     }

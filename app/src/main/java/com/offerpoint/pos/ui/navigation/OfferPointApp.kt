@@ -21,6 +21,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.offerpoint.pos.domain.repository.BarcodeLabelRepository
 import com.offerpoint.pos.domain.repository.InventoryRepository
 import com.offerpoint.pos.domain.repository.ProductRepository
 import com.offerpoint.pos.domain.repository.ShopRepository
@@ -46,12 +47,14 @@ import com.offerpoint.pos.ui.screens.SalesHistoryViewModel
 import com.offerpoint.pos.ui.screens.SaleDetailsScreen
 import com.offerpoint.pos.ui.screens.SaleDetailsViewModel
 import com.offerpoint.pos.ui.screens.TodaySalesViewModel
+import com.offerpoint.pos.ui.labels.ProductLabelScreen
+import com.offerpoint.pos.ui.labels.CostCodeSettingsScreen
 import com.offerpoint.pos.ui.theme.OfferPointTheme
 import kotlinx.coroutines.flow.collect
 
 /** Root UI entry point; startup/seeding is performed once by its retained ViewModel. */
 @Composable
-fun OfferPointApp(shopRepository: ShopRepository, productRepository: ProductRepository, inventoryRepository: InventoryRepository, salesRepository: SalesRepository) {
+fun OfferPointApp(shopRepository: ShopRepository, productRepository: ProductRepository, inventoryRepository: InventoryRepository, salesRepository: SalesRepository, barcodeLabelRepository: BarcodeLabelRepository) {
     OfferPointTheme {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             val appViewModel: AppViewModel = viewModel(factory = PosViewModelFactory { AppViewModel(shopRepository) })
@@ -100,10 +103,10 @@ fun OfferPointApp(shopRepository: ShopRepository, productRepository: ProductRepo
                             val id = entry.arguments?.getLong("shopId") ?: return@composable
                             val shop = appState.shops.firstOrNull { it.id == id } ?: return@composable
                             val vm: CheckoutViewModel = viewModel(entry, factory = viewModelFactory {
-                                initializer { CheckoutViewModel(productRepository, salesRepository, id, createSavedStateHandle()) }
+                                initializer { CheckoutViewModel(productRepository, salesRepository, id, createSavedStateHandle(), barcodeLabels = barcodeLabelRepository) }
                             })
                             val state by vm.state.collectAsStateWithLifecycle()
-                            CheckoutScreen(shop, state, vm::search, vm::retryProducts, vm::add, vm::editLine,
+                            CheckoutScreen(shop, state, vm::search, vm::retryProducts, vm::add, vm::scanBarcode, vm::scanNextItem, vm::canLeaveCheckout, vm::editLine,
                                 vm::remove, vm::setOrderDiscount, vm::setCashReceived, vm::exactCash, vm::refreshCart,
                                 vm::pay, vm::recoverPending,
                                 onSaved = { saleId ->
@@ -140,7 +143,7 @@ fun OfferPointApp(shopRepository: ShopRepository, productRepository: ProductRepo
                             val shop = appState.shops.firstOrNull { it.id == id } ?: return@composable
                             val vm: ProductsViewModel = viewModel(entry, factory = PosViewModelFactory { ProductsViewModel(productRepository, id) })
                             val state by vm.state.collectAsStateWithLifecycle()
-                            ProductsScreen(shop, state, vm::search, vm::retry, { nav.navigate("editor/$id/new") }, { productId -> nav.navigate("editor/$id/$productId") }, { nav.popBackStack() })
+                            ProductsScreen(shop, state, vm::search, vm::retry, { nav.navigate("editor/$id/new") }, { productId -> nav.navigate("editor/$id/$productId") }, { productId -> nav.navigate("label/$id/$productId") }, { nav.popBackStack() })
                         }
                         composable("editor/{shopId}/{productId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType }, navArgument("productId") { type = NavType.StringType })) { entry ->
                             val id = entry.arguments?.getLong("shopId") ?: return@composable
@@ -163,7 +166,18 @@ fun OfferPointApp(shopRepository: ShopRepository, productRepository: ProductRepo
                         composable("settings/{shopId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType })) { entry ->
                             val id = entry.arguments?.getLong("shopId") ?: return@composable
                             val shop = appState.shops.firstOrNull { it.id == id } ?: return@composable
-                            SettingsScreen(shop, appState.databaseStatus, { nav.popBackStack() }, { nav.navigate("shops") })
+                            SettingsScreen(shop, appState.databaseStatus, { nav.popBackStack() }, { nav.navigate("costcodes/$id") }, { nav.navigate("shops") })
+                        }
+                        composable("label/{shopId}/{productId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType }, navArgument("productId") { type = NavType.LongType })) { entry ->
+                            val id = entry.arguments?.getLong("shopId") ?: return@composable
+                            val productId = entry.arguments?.getLong("productId") ?: return@composable
+                            val shop = appState.shops.firstOrNull { it.id == id } ?: return@composable
+                            ProductLabelScreen(shop, productId, barcodeLabelRepository) { nav.popBackStack() }
+                        }
+                        composable("costcodes/{shopId}", arguments = listOf(navArgument("shopId") { type = NavType.LongType })) { entry ->
+                            val id = entry.arguments?.getLong("shopId") ?: return@composable
+                            val shop = appState.shops.firstOrNull { it.id == id } ?: return@composable
+                            CostCodeSettingsScreen(shop, barcodeLabelRepository) { nav.popBackStack() }
                         }
                         composable("coming/{shopId}/{feature}", arguments = listOf(navArgument("shopId") { type = NavType.LongType }, navArgument("feature") { type = NavType.StringType })) { entry ->
                             val id = entry.arguments?.getLong("shopId") ?: return@composable

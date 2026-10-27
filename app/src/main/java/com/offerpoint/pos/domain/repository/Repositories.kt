@@ -19,6 +19,8 @@ interface ProductRepository {
     fun observeProducts(shopId: Long, query: String = ""): Flow<List<Product>>
     suspend fun getProduct(shopId: Long, productId: Long): Product?
     suspend fun findByBarcode(barcode: String): RegisteredProduct?
+    /** Exact registry lookup, restricted to active products stocked by this shop. */
+    suspend fun findProductForBarcode(shopId: Long, barcode: String): Product?
     suspend fun createProduct(shopId: Long, draft: ProductDraft): Long
     suspend fun updateProduct(shopId: Long, productId: Long, draft: ProductDraft)
     /** Explicitly associates an existing registry product, keeping its shared identity intact. */

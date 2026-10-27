@@ -23,6 +23,21 @@ data class ProductRow(
     val quantity: Long,
 )
 
+/** The immutable printed label, joined only to its globally registered barcode value. */
+data class ProductLabelRow(
+    val barcodeId: Long,
+    val shopId: Long,
+    val productId: Long,
+    val sku: String,
+    val name: String,
+    val variant: String,
+    val barcodeValue: String,
+    val costCode: String,
+    val purchaseCostPaise: Long,
+    val alphabetSnapshot: String,
+    val createdAt: Long,
+)
+
 @Dao
 interface PosDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -72,6 +87,22 @@ interface PosDao {
 
     @Query("SELECT p.* FROM products p JOIN product_barcodes b ON b.productId = p.id WHERE b.value = :value LIMIT 1")
     suspend fun findByBarcode(value: String): ProductEntity?
+
+    @Query("SELECT * FROM product_barcodes WHERE value = :value LIMIT 1")
+    suspend fun findBarcodeByValue(value: String): ProductBarcodeEntity?
+
+    @Query("""
+        SELECT p.id, sp.shopId, p.sku, p.name, p.category, p.variant,
+            (SELECT b.value FROM product_barcodes b WHERE b.productId = p.id AND b.kind = 'MANUFACTURER' ORDER BY b.id LIMIT 1) AS manufacturerBarcode,
+            sp.purchaseCostPaise, sp.sellingPricePaise, i.quantity
+        FROM product_barcodes scanned
+        JOIN products p ON p.id = scanned.productId
+        JOIN shop_products sp ON sp.productId = p.id
+        JOIN inventory i ON i.shopId = sp.shopId AND i.productId = sp.productId
+        WHERE scanned.value = :value AND sp.shopId = :shopId AND p.isActive = 1 AND sp.isActive = 1
+        LIMIT 1
+    """)
+    suspend fun findProductForBarcode(shopId: Long, value: String): ProductRow?
 
     @Query("SELECT * FROM product_barcodes WHERE productId = :productId AND kind = 'MANUFACTURER' ORDER BY id LIMIT 1")
     suspend fun barcodeForProduct(productId: Long): ProductBarcodeEntity?
@@ -179,6 +210,43 @@ interface PosDao {
 
     @Query("SELECT COUNT(*) FROM sales")
     suspend fun countSales(): Int
+
+    @Query("SELECT * FROM cost_code_settings WHERE shopId = :shopId")
+    suspend fun getCostCodeSettings(shopId: Long): CostCodeSettingsEntity?
+
+    @Insert
+    suspend fun insertCostCodeSettings(settings: CostCodeSettingsEntity)
+
+    @Update
+    suspend fun updateCostCodeSettings(settings: CostCodeSettingsEntity): Int
+
+    @Insert
+    suspend fun insertProductLabel(label: ProductLabelEntity)
+
+    @Query("SELECT * FROM product_labels WHERE barcodeId = :barcodeId")
+    suspend fun getProductLabel(barcodeId: Long): ProductLabelEntity?
+
+    @Query("""
+        SELECT l.barcodeId, l.shopId, l.productId, l.skuSnapshot AS sku,
+            l.nameSnapshot AS name, l.variantSnapshot AS variant, b.value AS barcodeValue,
+            l.costCode, l.purchaseCostPaise, l.alphabetSnapshot, l.createdAt
+        FROM product_labels l
+        JOIN product_barcodes b ON b.id = l.barcodeId AND b.productId = l.productId
+        WHERE l.shopId = :shopId AND l.barcodeId = :barcodeId
+        LIMIT 1
+    """)
+    suspend fun getLabelRow(shopId: Long, barcodeId: Long): ProductLabelRow?
+
+    @Query("""
+        SELECT l.barcodeId, l.shopId, l.productId, l.skuSnapshot AS sku,
+            l.nameSnapshot AS name, l.variantSnapshot AS variant, b.value AS barcodeValue,
+            l.costCode, l.purchaseCostPaise, l.alphabetSnapshot, l.createdAt
+        FROM product_labels l
+        JOIN product_barcodes b ON b.id = l.barcodeId AND b.productId = l.productId
+        WHERE b.value = :value
+        LIMIT 1
+    """)
+    suspend fun findLabelRowByValue(value: String): ProductLabelRow?
 
     @Insert
     suspend fun insertReturn(productReturn: ReturnEntity): Long

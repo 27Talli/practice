@@ -10,8 +10,10 @@ import com.offerpoint.pos.domain.model.Product
 import com.offerpoint.pos.domain.model.SaleDetails
 import com.offerpoint.pos.domain.model.SaleSummary
 import com.offerpoint.pos.domain.model.TodaySales
+import com.offerpoint.pos.domain.repository.BarcodeLabelRepository
 import com.offerpoint.pos.domain.repository.ProductRepository
 import com.offerpoint.pos.domain.repository.SalesRepository
+import com.offerpoint.pos.domain.usecase.LookupScannedProduct
 import com.offerpoint.pos.domain.usecase.CheckoutMath
 import com.offerpoint.pos.domain.usecase.Money
 import com.offerpoint.pos.domain.usecase.Quantity
@@ -63,8 +65,15 @@ data class CheckoutState(
     val error: String? = null,
     val notice: String? = null,
     val completedSaleId: Long? = null,
+    val scanProcessing: Boolean = false,
+    val scanPaused: Boolean = false,
+    val scanResetKey: Long = 0,
+    val scanMessage: String? = null,
+    val scannedCostCode: String? = null,
+    val scannedPurchaseCostPaise: Long? = null,
 ) {
-    val locked: Boolean get() = saving || recovering || refreshing || recoveryRequired || completedSaleId != null
+    val paymentLocked: Boolean get() = saving || recovering || refreshing || recoveryRequired || completedSaleId != null
+    val locked: Boolean get() = paymentLocked || scanProcessing
 }
 
 /** A restored pending checkout is reconciled before the operator may edit or post it again. */
@@ -74,6 +83,7 @@ class CheckoutViewModel(
     private val sales: SalesRepository,
     private val shopId: Long,
     private val savedState: SavedStateHandle,
+    private val barcodeLabels: BarcodeLabelRepository? = null,
     private val newRequestId: () -> String = { UUID.randomUUID().toString() },
 ) : ViewModel() {
     private val restoringRequest = savedState.get<String>("requestId") != null
@@ -132,6 +142,7 @@ class CheckoutViewModel(
             cashReceived = savedState["cashReceived"] ?: "",
             completedSaleId = savedState["completedSaleId"],
             recovering = restoringRequest,
+            scanPaused = savedState["scanPaused"] ?: restoringRequest,
         )
     }
 
@@ -147,9 +158,12 @@ class CheckoutViewModel(
     fun canLeaveCheckout(): Boolean = !mutableState.value.locked
 
     fun add(product: Product) {
-        if (mutableState.value.locked) return
-        if (product.shopId != shopId) { showError("This product belongs to a different shop."); return }
-        try {
+        if (!mutableState.value.locked) addProduct(product)
+    }
+
+    private fun addProduct(product: Product): Boolean {
+        if (product.shopId != shopId) { showError("This product belongs to a different shop."); return false }
+        return try {
             require(product.quantity > 0) { "This product is out of stock." }
             val current = mutableState.value.cart
             val existing = current.firstOrNull { it.productId == product.id }
@@ -158,7 +172,48 @@ class CheckoutViewModel(
             val item = existing?.copy(quantity = quantity, availableQuantity = product.quantity)
                 ?: CartItem(product.id, product.sku, product.name, product.variant, 1, product.sellingPricePaise, product.quantity)
             editDraft { it.copy(cart = if (existing == null) current + item else current.map { row -> if (row.productId == product.id) item else row }) }
-        } catch (error: Exception) { showError(error.userMessage()) }
+            true
+        } catch (error: Exception) { showError(error.userMessage()); false }
+    }
+
+    /** A point-and-scan result adds one unit, then requires an explicit next-item action. */
+    fun scanBarcode(value: String, format: String) {
+        val current = mutableState.value
+        if (current.locked || current.scanPaused) return
+        val labels = barcodeLabels
+        if (labels == null) { showError("Barcode scanning is not available in this workspace."); return }
+        mutableState.update { it.copy(scanProcessing = true, scanPaused = true, scanMessage = null,
+            scannedCostCode = null, scannedPurchaseCostPaise = null, error = null) }
+        persist()
+        viewModelScope.launch {
+            try {
+                val match = LookupScannedProduct(products, labels)(shopId, value, format)
+                // The camera may deliver a result after payment recovery has begun.
+                if (!mutableState.value.paymentLocked) {
+                    if (addProduct(match.product)) {
+                        mutableState.update { it.copy(
+                            scanMessage = "${match.product.name} added · ${Money.format(match.product.sellingPricePaise)}",
+                            scannedCostCode = match.label?.costCode,
+                            scannedPurchaseCostPaise = match.label?.purchaseCostPaise,
+                        ) }
+                    }
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                showError(error.userMessage())
+            } finally {
+                mutableState.update { it.copy(scanProcessing = false) }
+                persist()
+            }
+        }
+    }
+
+    fun scanNextItem() {
+        if (mutableState.value.locked) return
+        mutableState.update { it.copy(scanPaused = false,
+            scanResetKey = if (it.scanResetKey == Long.MAX_VALUE) 0 else it.scanResetKey + 1,
+            scanMessage = null, scannedCostCode = null, scannedPurchaseCostPaise = null, error = null) }
+        persist()
     }
 
     fun editLine(productId: Long, quantityText: String, discountText: String): Boolean {
@@ -225,7 +280,7 @@ class CheckoutViewModel(
     }
 
     fun recoverPending() {
-        if (mutableState.value.saving || recoveryRunning) return
+        if (mutableState.value.saving || mutableState.value.scanProcessing || recoveryRunning) return
         recoveryRunning = true
         mutableState.update { it.copy(recovering = true, recoveryRequired = true, error = null) }
         viewModelScope.launch {
@@ -296,6 +351,7 @@ class CheckoutViewModel(
         savedState["shopId"] = shopId
         savedState["requestId"] = requestId
         savedState["pending"] = pending
+        savedState["scanPaused"] = current.scanPaused
         savedState["completedSaleId"] = current.completedSaleId
         savedState["orderDiscount"] = current.orderDiscount
         savedState["cashReceived"] = current.cashReceived

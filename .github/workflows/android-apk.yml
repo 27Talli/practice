@@ -70,11 +70,13 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose app/build/outputs/apk/demo/debug/app-demo-debug.apk
           sha256sum app/build/outputs/apk/live/debug/app-live-debug.apk app/build/outputs/apk/demo/debug/app-demo-debug.apk | tee apk-checksums.txt
           {
-            echo '## Offer Point POS Milestone 2'
+            echo '## Offer Point POS Milestone 3'
             echo
             echo 'Signed debug APKs for Android 8.0 and newer.'
             echo 'Live and Demo have separate application IDs and data.'
-            echo 'Room instrumentation and migration tests run on an Android emulator in a separate step below.'
+            echo 'Barcode decoding is bundled and runs offline; the app requests camera access only for scanning.'
+            echo 'Database, migration, and checkout UI tests run on an Android emulator in a separate step below.'
+            echo 'Physical-camera focus, lighting, and printed-label scanning still require acceptance testing on the shop phone.'
             echo
             echo '### SHA-256 checksums'
             echo '```'
@@ -97,7 +99,7 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 90
-      - name: Run Room and migration tests on Android
+      - name: Run database, migration, and checkout UI tests on Android
         run: bash scripts/run-android-tests.sh
       - name: Record generated schemas and test totals
         if: always()

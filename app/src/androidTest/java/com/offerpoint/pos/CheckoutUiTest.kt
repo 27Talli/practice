@@ -14,6 +14,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.offerpoint.pos.data.local.database.PosDatabase
 import com.offerpoint.pos.data.repository.RoomInventoryRepository
+import com.offerpoint.pos.data.repository.RoomBarcodeLabelRepository
 import com.offerpoint.pos.data.repository.RoomProductRepository
 import com.offerpoint.pos.data.repository.RoomSalesRepository
 import com.offerpoint.pos.data.repository.RoomShopRepository
@@ -37,6 +38,7 @@ class CheckoutUiTest {
     private lateinit var products: RoomProductRepository
     private lateinit var inventory: RoomInventoryRepository
     private lateinit var sales: RoomSalesRepository
+    private lateinit var labels: RoomBarcodeLabelRepository
     private var productId = 0L
 
     private val isolatedDatabase = object : ExternalResource() {
@@ -47,6 +49,7 @@ class CheckoutUiTest {
             products = RoomProductRepository(database)
             inventory = RoomInventoryRepository(database)
             sales = RoomSalesRepository(database)
+            labels = RoomBarcodeLabelRepository(database)
             runBlocking {
                 shops.initialize()
                 shops.selectShop(1)
@@ -67,12 +70,13 @@ class CheckoutUiTest {
     val rules: TestRule = RuleChain.outerRule(isolatedDatabase).around(compose)
 
     @Test fun cashierCanCompleteACashSaleAndReopenItsSavedHistory() {
-        compose.setContent { OfferPointApp(shops, products, inventory, sales) }
+        compose.setContent { OfferPointApp(shops, products, inventory, sales, labels) }
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText("Your retail workspace").fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Checkout"))
         compose.onNodeWithText("Checkout").performClick()
+        compose.onNodeWithText("Products").performClick()
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText("+ Add").fetchSemanticsNodes().isNotEmpty()
         }

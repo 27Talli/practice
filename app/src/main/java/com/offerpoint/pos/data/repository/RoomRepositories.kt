@@ -45,7 +45,12 @@ class RoomShopRepository(
                 ShopEntity(1, "OP", "Offer Point", "Shop No. 8, Yahya Khan Market, Neher Chowk, Mardan, Pakistan", timestamp, timestamp),
                 ShopEntity(2, "FF", "Fancy Footwears", "Shops No. 9 & 10, Yahya Khan Market, Neher Chowk, Mardan, Pakistan", timestamp, timestamp),
             ))
-            val settings = dao.getSettings() ?: AppSettingsEntity().also { dao.upsertSettings(it) }
+            val previousSettings = dao.getSettings()
+            val settings = (previousSettings ?: AppSettingsEntity()).let {
+                // Offer Point is the primary workspace. An explicitly selected other shop is preserved.
+                if (it.selectedShopId == null) it.copy(selectedShopId = 1) else it
+            }
+            if (settings != previousSettings) dao.upsertSettings(settings)
             // DI supplies a separate database file/application ID for the demo build.
             // This durable marker prevents edited sample products reappearing on restart.
             if (demoMode && !settings.demoSeeded) {
@@ -94,6 +99,9 @@ class RoomProductRepository(
 
     override suspend fun findByBarcode(barcode: String): RegisteredProduct? =
         dao.findByBarcode(barcode.trim())?.let { RegisteredProduct(it.id, it.sku, it.name, it.category, it.variant) }
+
+    override suspend fun findProductForBarcode(shopId: Long, barcode: String): Product? =
+        dao.findProductForBarcode(shopId, barcode.trim())?.toDomain()
 
     override suspend fun createProduct(shopId: Long, draft: ProductDraft): Long {
         val valid = ProductValidation.validate(draft)
@@ -158,8 +166,11 @@ class RoomProductRepository(
     }
 
     private suspend fun ensureBarcodeAvailable(barcode: String, allowedProductId: Long? = null) {
-        val registered = dao.findByBarcode(barcode)
-        if (registered != null && registered.id != allowedProductId) throw BarcodeConflictException(barcode)
+        val registered = dao.findBarcodeByValue(barcode) ?: return
+        if (registered.productId != allowedProductId) throw BarcodeConflictException(barcode)
+        if (registered.kind != "MANUFACTURER") {
+            throw ValidationException("barcode", "This code is already used by an internal label. Keep the manufacturer's barcode separate.")
+        }
     }
 
     private suspend fun nextSku(prefix: String, pendingBarcode: String?): String {

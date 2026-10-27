@@ -1,16 +1,14 @@
-# Offer Point POS — Milestone 2 (0.2.0)
+# Offer Point POS — Milestone 3 (0.3.0)
 
 An offline Android retail foundation for **Offer Point** and **Fancy Footwears**, Yahya Khan Market, Neher Chowk, Mardan, Pakistan. One local device and cashier; no accounts, subscriptions, server, or checkout network dependency.
 
-Milestone 2 adds **real offline cash checkout** to the shop, product, and inventory foundation. It saves sales and stock deductions atomically, shows shop-specific sales history, and calculates today’s sales from saved records using Pakistan time. Camera scanning, receipt generation/printing, returns, financial reports, expenses UI, and backups remain deferred.
+Milestone 3 adds **camera-first offline checkout and printable Code 128 product labels with a secret purchase-cost code**. Offer Point is the primary shop and the default on a fresh installation. Existing Fancy Footwears inventory, transactions, and selection are retained; its manual product checkout remains available through Settings. Real cash sales still save atomically with stock deductions and appear in shop-specific history. Receipt documents/printing, returns, financial reports, expenses entry, and backups remain deferred.
 
-## Current verified build
+## Build verification status
 
-Version **0.2.0** passed [build run 40355529395](https://github.com/27Talli/practice/actions/runs/40355529395): 37 JVM tests per variant, Android lint, and 41 Android emulator tests including the real checkout UI and version 1 → 2 migration.
+Milestone 3 source is implemented; its Android build and emulator verification are pending. The prior verified baseline is [Milestone 2 run 40355529395](https://github.com/27Talli/practice/actions/runs/40355529395). Current results and APK links will be recorded in [VERIFICATION.md](VERIFICATION.md) after the new workflow finishes.
 
-[Download Live APK ZIP](https://github.com/27Talli/practice/actions/runs/40355529395/artifacts/12664709915) · [Download Demo APK ZIP](https://github.com/27Talli/practice/actions/runs/40355529395/artifacts/12665871990)
-
-Extract the ZIP to install the APK. Use Demo for evaluation; it keeps sample products/sales separate. These are debug builds: an existing app may reject a differently signed update. **Do not uninstall or clear existing business data to resolve a signing mismatch.** See the signing and upgrade notes below and [VERIFICATION.md](VERIFICATION.md).
+Use Demo for evaluation; it keeps sample products/sales separate. These are debug builds: an existing app may reject a differently signed update. **Do not uninstall or clear existing business data to resolve a signing mismatch.** See the signing and upgrade notes below.
 
 ## Requirements and opening the project
 
@@ -82,7 +80,7 @@ Room integration tests require an API 26+ emulator or an attached Android phone.
 ./gradlew :app:connectedLiveDebugAndroidTest
 ```
 
-The JVM suite covers validation, exact checkout arithmetic, payment recovery, and ViewModel behavior. There are **41 instrumented Android tests**: 40 Room/migration tests and one end-to-end Compose checkout test. These include 21 new checkout/migration cases. GitHub Actions runs the JVM suite for both variants and the device suite on Android; consult its completed logs and reports for actual results. Coverage includes idempotent shop creation, persistent selection, product insertion/editing/retrieval, search, shop-specific prices and quantities, explicit product association, global internal/manufacturer barcode uniqueness, nonnegative stock, integer overflow, required adjustment reasons, ledger/audit consistency, forced transaction rollback, foreign-key isolation of future sales/returns, and closing/reopening a disk database. Test fixtures are created by tests and never inserted into the live app.
+The JVM suite covers validation, exact checkout arithmetic, payment recovery, and ViewModel behavior. The Android suite includes Room/migration tests, an end-to-end Compose checkout test, and native PDF generation/rendering with barcode decoding and FileProvider access. New tests cover label registration, private cost codes, alias persistence, Live/Demo label namespaces, UPC/EAN ambiguity, scan state and duplicate guards, and version 2 → 3 migration. Executed totals are recorded in VERIFICATION.md. GitHub Actions runs the JVM suite for both variants and the device suite on Android; consult its completed logs and reports for actual results. Coverage includes idempotent shop creation, persistent selection, product insertion/editing/retrieval, search, shop-specific prices and quantities, explicit product association, global internal/manufacturer barcode uniqueness, nonnegative stock, integer overflow, required adjustment reasons, ledger/audit consistency, forced transaction rollback, foreign-key isolation of future sales/returns, and closing/reopening a disk database. Test fixtures are created by tests and never inserted into the live app.
 
 A supplemental source-reflected SQLite check can run without Android tooling using Python 3:
 
@@ -90,13 +88,13 @@ A supplemental source-reflected SQLite check can run without Android tooling usi
 python3 scripts/check_schema.py
 ```
 
-It validates all 15 entity definitions, the SQL in the current DAO queries, key relationships, barcode uniqueness, and stock isolation against Python’s SQLite. It does not execute Room code, Kotlin, Compose, or the Android instrumentation suite.
+It validates all 17 entity definitions, the SQL in the current DAO queries, key relationships, barcode uniqueness, and stock isolation against Python’s SQLite. It does not execute Room code, Kotlin, Compose, or the Android instrumentation suite.
 
 Tests need no network at runtime. Once development dependencies have been cached, Gradle can run with `--offline`. Build/test execution results for this delivery are recorded in [VERIFICATION.md](VERIFICATION.md); source code presence alone is not proof that a build or test passed.
 
 Manual acceptance on a phone:
 
-1. Launch the live app in airplane mode. Choose Offer Point; confirm no invented sales figures or products appear.
+1. Launch the live app in airplane mode. Confirm Offer Point is selected by default and no invented sales figures or products appear.
 2. Add a product with a category, optional variant/barcode, cost `100.10`, selling price `150.25`, and opening stock `5`.
 3. Search its name, category, SKU, and barcode. Edit its name and prices; confirm stock stays `5`.
 4. Increase stock with a reason, then decrease it to zero. Try a decrease below zero and confirm the error and unchanged balance.
@@ -108,6 +106,9 @@ Manual acceptance on a phone:
 10. Try insufficient stock, excessive discounts, and cash below the total. No failed checkout may leave a sale, stock deduction, or receipt-sequence gap.
 11. Change a product price while a cart is open; checkout must require an explicit cart refresh and review before saving.
 12. Check Settings and Reports: deferred features still say coming soon. Install Demo alongside Live; sample inventory and sales must stay isolated.
+13. In Demo, open Checkout → Scan, allow the camera, and scan a registered manufacturer barcode. One item should be added; holding the label still must not add more. Tap **Scan next item** for each additional unit. Test torch, denied permission, Android Settings recovery, and Products fallback.
+14. In Products, open a barcode label. Generate/export a PDF, print at actual size, and scan the physical label in airplane mode. Confirm its exact code resolves to the intended product; an unregistered code, another shop's item, or out-of-stock item must not enter the cart.
+15. Reveal the private code key in Settings and decode a known purchase cost. Change purchase cost or key, create a new label, then scan both old and new labels: both identify the same item; the old label preserves its recorded cost and checkout uses current catalog pricing. Demo PDF labels must visibly say DEMO and use the DEMO namespace.
 
 ## Implementation
 
@@ -124,6 +125,8 @@ app/src/main/java/com/offerpoint/pos/
   domain/usecase/          Exact money and inventory validation
   ui/navigation/           Compose navigation
   ui/screens/              Screens, ViewModels and UI state
+  ui/scanner/              Camera lifecycle and bundled barcode decoding
+  ui/labels/               Private cost settings, label preview and PDF export
   ui/components/           Shared touch-friendly controls
   ui/theme/                Placeholder brand colors and typography
   di/                      Application-scoped constructor injection
@@ -133,23 +136,25 @@ Manual constructor injection keeps this small single-module app understandable w
 
 Implemented screens:
 
-- **Shop Selection:** both shop addresses, durable local selection, switching.
+- **Shop Selection:** both shop addresses and durable selection; fresh installs default to Offer Point, with other-shop access in Settings.
 - **Dashboard:** selected shop, real today’s sales and transaction count in Pakistan time, checkout, products/inventory/settings, sales history, and deferred reports.
 - **Products:** shop-filtered reactive list, literal search, add/edit, category/variant, immutable generated SKU, optional existing manufacturer barcode, shop-specific purchase cost/selling price, opening stock, explicit association of an existing registry item.
 - **Inventory:** current shop's balances; increases/decreases with a required reason and atomic stock ledger.
-- **Checkout:** selected-shop product search, cart quantities/removal, fixed line and order discounts, exact cash/change, price/stock revalidation, durable posted sales, and safe retry recovery.
+- **Checkout:** Offer Point opens Scan with camera permission requested only by the user; separate Cart and Products fallback sections, cart quantities/removal, fixed discounts, exact cash/change, price/stock revalidation, durable sales, and safe retry recovery. Fancy Footwears opens manual Products checkout.
 - **Sales history/details:** completed sales for the selected shop, immutable item snapshots, receipt references, totals, discounts, cash, change, and Pakistan timestamps.
-- **Settings:** application version, current shop, offline operation, checked local database status, printer/backup placeholders.
+- **Barcode labels:** registered Code 128 aliases with a private coded purchase-cost snapshot, preview, staff reveal, 1–100-copy PDF export/share, old-alias compatibility, and visibly marked Demo labels.
+- **Settings:** app version, current shop, offline/database status, private cost-code key, optional other-shop access, printer/backup placeholders.
 
 ## Database and data rules
 
-The version 2 schema includes all requested business entities:
+The version 3 schema includes all requested business entities:
 
 | Entity | Responsibility |
 | --- | --- |
 | Shop | Shop code, name, address, timestamps |
 | Product | Shared name, category, variant, unique immutable SKU, active flag |
 | ProductBarcode | Global unique text barcode; internal Code 128 identity or manufacturer code |
+| CostCodeSettings / ProductLabel | Private per-shop digit mapping; immutable barcode/cost/key/product-label snapshots |
 | ShopProduct | Shop/product composite key; separate cost, selling price, active flag |
 | Inventory | Shop/product balance in whole items |
 | StockMovement | Append-only opening/adjustment ledger; future sale/return references |
@@ -161,21 +166,29 @@ Supporting `AppSettings`, `SkuSequence`, `SaleSequence`, and `AuditEvent` tables
 
 - Money is `Long` integer **paise**, never `Float` or `Double`. Text crosses the UI boundary through exact `BigDecimal` conversion. Example: `Rs. 150.25` stores `15025`.
 - Quantities are nonnegative `Long` whole items. Each independently stocked color/size is a separate product variant. Zero prices are permitted; selling below purchase cost is not blocked by an invented business policy.
-- A registry item has one generated internal SKU/barcode, e.g. `OP-000001` or `FF-000001`, plus an optional manufacturer barcode. Barcode strings preserve leading zeros and case. Both types share one uniqueness constraint. A product's original SKU prefix stays unchanged when it is associated with the other shop.
+- A registry item has one generated internal SKU/barcode, e.g. `OP-000001` or `FF-000001`, plus an optional manufacturer barcode. Barcode strings preserve leading zeros and case. All barcode types, including generated label aliases, share one global uniqueness constraint. Multiple internal aliases per product preserve previously printed labels. A product's original SKU prefix stays unchanged when it is associated with the other shop.
 - Shared names/categories/variants/barcodes update across associated shops; the editor warns about this. Prices and quantities are always scoped to the selected shop. Existing-barcode association is an explicit action rather than silent merging.
 - Product creation, initial stock, barcode reservation, SKU allocation, and audit writes commit together. Product edits never set stock; adjustments and ledger inserts commit together with overflow/negative checks.
 - Composite foreign keys prevent future sale/return records from referencing another shop or the wrong original sale/item. Business records use restrictive foreign keys; parent rows are never replaced to update them.
-- The app does not request Internet, camera, account, location, or storage permissions. Android automatic backup is disabled while controlled backup/restore is deferred. All operational data remains in the app's private Room database.
+- The app requests **camera permission only for scanning**. It does not request Internet, account, location, or storage permissions. Camera hardware/autofocus are optional; manual checkout works without them. CameraX and ZXing decode frames entirely on-device, with no model download. Exported PDFs use a private cache subdirectory and temporary FileProvider read access. Android automatic backup is disabled while controlled backup/restore is deferred. All operational data remains in the app's private Room database.
 - Timestamps are UTC epoch milliseconds. Daily sales use inclusive-start/exclusive-end `Asia/Karachi` day boundaries and refresh at midnight.
 - Cash is the only payment method. Line discounts are fixed amounts for the entire line; order discounts apply after line discounts. Discounts may reduce a total to zero but never below zero. No taxes, percentage discounts, card payments, or credit rules are invented.
 - Each checkout has one stable request key. Replaying the same request returns the original saved sale; reusing the key with a different payload is rejected. The UI checks saved results after restoration or an uncertain error before enabling changes.
 - Receipt references such as `OP-S-000001` and `FF-S-000001` allocate in the same transaction as the sale. They identify saved sales; receipt documents and printing are not implemented.
 - Cart drafts use Android SavedStateHandle for normal process recreation; they are not long-term parked carts. Completed sales are durable Room records. Force-stopping before Android saves UI state may discard an unpaid draft, while completed sales remain accessible in Sales history.
 
-Room exports versioned schemas to `app/schemas`; the workflow includes generated schemas in the `verification-reports` artifact. Commit the generated version 1 JSON after a successful build, before changing the schema. **There is no destructive migration fallback.** Future schema changes must increment the version, commit an explicit migration, and add migration tests before release. Keep historical stock and audit rows; deletion/archival workflows are outside this milestone.
+Room exports versioned schemas to `app/schemas`; the workflow includes generated schemas in the `verification-reports` artifact. Historical generated versions 1 and 2 are committed; version 3 is generated by Room and must be committed after successful verification. Explicit migrations preserve business records through 1 → 2 → 3. **There is no destructive migration fallback.** Future schema changes must increment the version, commit an explicit migration, and add migration tests before release. Keep historical stock and audit rows; deletion/archival workflows are outside this milestone.
+
+## Secret cost-code labels
+
+Each shop has a private ten-letter key mapping the digits 0–9. A cryptographically generated random key is saved locally on first use; staff can reveal or customize it in Settings. The code represents integer **paise**. For illustration only, the test key `BLACKHORSE` maps cost `Rs. 125.50` (12550 paise) to `LAHHB`; an own label can contain `OP-000001~LAHHB`. The real key is private and generated per installation/shop, not this example. A suffix resolves collisions without changing the product identity. Demo payloads begin `DEMO~` so physical demo labels cannot silently match Live labels.
+
+This is staff-readable obfuscation, not encryption or an access-control mechanism. The app currently has no staff PIN. Keep the key private; neither the key nor a plain purchase-cost amount is printed/exported. Manufacturer barcodes stay unchanged. Labels must be generated/registered in this database: arbitrary external codes are never parsed as trusted prices or costs.
+
+Each generated label preserves the purchase cost, key and product description from creation. Changing costs or keys creates a new alias when necessary while retaining old aliases. The checkout staff reveal distinguishes that old label snapshot from current catalog cost. Sale price/cost snapshots always come from current Room records. Costs are not tracked separately per purchased batch in this milestone.
 
 ## Next milestone and current limits
 
-Milestone 3 should add camera barcode scanning and receipt generation on top of the saved transaction model. Returns, financial reports, expenses entry, printers, and controlled backup/restore remain later work.
+The next milestone should add receipt documents and printer integration on top of saved transactions. Returns, financial reports, expenses entry, and controlled backup/restore follow separately. Fancy Footwears remains supported through manual product selection while a suitable footwear workflow is designed.
 
-This build has no production release signing, backup/export, multi-device synchronization, accounts, customer records, fractional stock, camera permission, tax engine, non-cash payment methods, or official shop logos. Test the Demo app and the acceptance steps on the shop phones before operational use. Keep a stable private release signing key for production upgrades; never uninstall a business-data installation to resolve a debug signing-key mismatch.
+This build has no production release signing, backup/restore, staff authentication, multi-device sync, customer records, fractional stock, tax engine, non-cash payments, or official logos. PDF labels use A4 sheets; printer pairing and custom thermal layouts remain deferred. Camera focus/lighting, permission recovery and real printed-label readability need acceptance on the shop phone and printer. Test Demo first. Keep a stable private release signing key for production upgrades; never uninstall or clear a business-data installation to resolve a debug signing-key mismatch.

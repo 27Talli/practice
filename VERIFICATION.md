@@ -1,5 +1,9 @@
 # Delivery verification
 
+## Milestone 3 (0.3.0) — verification pending
+
+Camera scanning, secret cost-code labels, PDF export, and explicit Room 2 → 3 migration are implemented. The new Android workflow has not yet completed; the Milestone 2 results below apply only to that earlier source. The local workspace has no Android SDK/Gradle/JDK compiler, so actual Android verification will run through GitHub Actions.
+
 ## Verified Milestone 2 build (0.2.0)
 
 [GitHub Actions run 40355529395](https://github.com/27Talli/practice/actions/runs/40355529395) completed successfully on 26 October 2026, building source commit `4de91ccdfc52ed5b180f07e50b8444930445d2c4`.

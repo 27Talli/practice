@@ -118,6 +118,7 @@ class PosViewModelTest {
         override fun observeProducts(shopId: Long, query: String): Flow<List<Product>> = flowOf(emptyList())
         override suspend fun getProduct(shopId: Long, productId: Long): Product? = null
         override suspend fun findByBarcode(barcode: String): RegisteredProduct? = null
+        override suspend fun findProductForBarcode(shopId: Long, barcode: String): Product? = null
         override suspend fun createProduct(shopId: Long, draft: ProductDraft): Long {
             creations += shopId to draft
             val id = creationGate?.await() ?: 99L

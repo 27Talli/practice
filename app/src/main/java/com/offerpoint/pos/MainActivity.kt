@@ -12,7 +12,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val container = (application as OfferPointApplication).container
         setContent {
-            OfferPointApp(container.shopRepository, container.productRepository, container.inventoryRepository, container.salesRepository)
+            OfferPointApp(container.shopRepository, container.productRepository, container.inventoryRepository, container.salesRepository, container.barcodeLabelRepository)
         }
     }
 }
