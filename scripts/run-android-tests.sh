@@ -111,21 +111,28 @@ from pathlib import Path
 adb, serial, destination = sys.argv[1:]
 folder = Path(destination)
 names = ('dashboard-grid.png', 'checkout-dark.png')
+failures = set()
 while True:
     for name in names:
         output = folder / name
         if output.exists():
             continue
-        try:
-            result = subprocess.run([adb, '-s', serial, 'exec-out', 'run-as', 'com.offerpoint.pos', 'cat',
-                '/sdcard/Android/data/com.offerpoint.pos/files/customization-previews/' + name],
-                capture_output=True, timeout=8)
-            image = result.stdout
-            if result.returncode == 0 and image.startswith(b'\x89PNG\r\n\x1a\n') and image.endswith(b'\x00\x00\x00\x00IEND\xaeB`\x82'):
-                output.write_bytes(image)
-                print('Captured synthetic UI:', name, flush=True)
-        except subprocess.TimeoutExpired:
-            pass
+        for package in ('com.offerpoint.pos', 'com.offerpoint.pos.test'):
+            try:
+                result = subprocess.run([adb, '-s', serial, 'exec-out', 'run-as', package, 'cat',
+                    'files/customization-previews/' + name], capture_output=True, timeout=8)
+                image = result.stdout
+                if result.returncode == 0 and image.startswith(b'\x89PNG\r\n\x1a\n') and image.endswith(b'\x00\x00\x00\x00IEND\xaeB`\x82'):
+                    output.write_bytes(image)
+                    print('Captured synthetic UI:', name, flush=True)
+                    break
+                message = result.stderr.decode('utf-8', errors='replace').strip()[:160]
+                key = (name, package, message)
+                if key not in failures:
+                    failures.add(key)
+                    print('Waiting for UI capture:', package, name, message, flush=True)
+            except subprocess.TimeoutExpired:
+                pass
     if all((folder / name).is_file() for name in names):
         break
     time.sleep(2)

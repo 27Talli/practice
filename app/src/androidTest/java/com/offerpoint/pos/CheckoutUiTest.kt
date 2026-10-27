@@ -223,8 +223,11 @@ class CheckoutUiTest {
 
     private fun captureCustomization(name: String) {
         val bitmap=compose.onRoot().captureToImage().asAndroidBitmap()
-        val folder=java.io.File(ApplicationProvider.getApplicationContext<Context>().getExternalFilesDir(null),"customization-previews").apply{mkdirs()}
-        java.io.File(folder,name).outputStream().use{assertEquals(true,bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it))}
+        val context=ApplicationProvider.getApplicationContext<Context>()
+        val folder=java.io.File(context.filesDir,"customization-previews").apply{mkdirs()}
+        val file=java.io.File(folder,name)
+        file.outputStream().use{assertEquals(true,bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it))}
+        android.util.Log.i("PosUiCapture","Saved synthetic UI capture: ${context.packageName} ${file.absolutePath} (${file.length()} bytes)")
     }
 
     @Test fun ownerCanPreviewReorderRenameAndApplyTheDashboardWithoutCoding() {
